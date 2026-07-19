@@ -1,0 +1,254 @@
+/* ==========================
+   Global Reset
+========================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+/* ==========================
+   Body
+========================== */
+
+body{
+
+    background:#EDF2F7;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    height:100vh;
+
+}
+
+/* ==========================
+   Login Container
+========================== */
+
+.login-container{
+
+    width:100%;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+/* ==========================
+   Login Card
+========================== */
+
+.login-card{
+
+    width:430px;
+
+    background:#ffffff;
+
+    padding:40px;
+
+    border-radius:12px;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+
+}
+
+/* ==========================
+   Logo
+========================== */
+
+.logo-placeholder{
+
+    width:100px;
+
+    height:100px;
+
+    margin:auto;
+
+    margin-bottom:20px;
+
+    border-radius:50%;
+
+    border:2px dashed #B0BEC5;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    color:#607D8B;
+
+    font-size:14px;
+
+}
+
+/* ==========================
+   Titles
+========================== */
+
+.login-card h1{
+
+    text-align:center;
+
+    color:#1D3557;
+
+    font-size:28px;
+
+}
+
+.login-card h2{
+
+    text-align:center;
+
+    color:#1D3557;
+
+    margin-bottom:10px;
+
+}
+
+.login-card p{
+
+    text-align:center;
+
+    color:#777;
+
+    margin-bottom:30px;
+
+}
+
+/* ==========================
+   Labels
+========================== */
+
+.login-card label{
+
+    display:block;
+
+    margin-bottom:8px;
+
+    font-weight:bold;
+
+}
+
+/* ==========================
+   Inputs
+========================== */
+
+.login-card input[type=text],
+
+.login-card input[type=password]{
+
+    width:100%;
+
+    padding:12px;
+
+    margin-bottom:20px;
+
+    border:1px solid #CCC;
+
+    border-radius:6px;
+
+    font-size:15px;
+
+}
+
+.login-card input:focus{
+
+    outline:none;
+
+    border-color:#1D3557;
+
+}
+
+/* ==========================
+   Remember Me
+========================== */
+
+.remember{
+
+    margin-bottom:20px;
+
+}
+
+/* ==========================
+   Button
+========================== */
+
+.login-card button{
+
+    width:100%;
+
+    padding:12px;
+
+    background:#1D3557;
+
+    color:white;
+
+    border:none;
+
+    border-radius:6px;
+
+    font-size:16px;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.login-card button:hover{
+
+    background:#284B75;
+
+}
+
+/* ==========================
+   Forgot Password
+========================== */
+
+.login-card a{
+
+    display:block;
+
+    text-align:center;
+
+    text-decoration:none;
+
+    color:#1D3557;
+
+}
+
+.login-card a:hover{
+
+    text-decoration:underline;
+
+}
+
+/* ==========================
+   Error Message
+========================== */
+
+.error-message{
+
+    background:#FDECEA;
+
+    color:#C0392B;
+
+    padding:10px;
+
+    border-radius:6px;
+
+    margin-bottom:20px;
+
+    text-align:center;
+
+}
