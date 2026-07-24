@@ -1,0 +1,82 @@
+<?php
+
+require_once "../../auth/check_auth.php";
+include "../../includes/header.php";
+
+$id = $_GET['id'] ?? null;
+
+$procurement = $_SESSION['procurement'][$id] ?? null;
+
+?>
+
+<div class="layout">
+
+<?php include "../../includes/sidebar.php"; ?>
+
+<div class="main-content">
+
+<h1>View Procurement</h1>
+
+<hr>
+
+<?php if ($procurement): ?>
+
+<table class="asset-table">
+
+<tr>
+    <th style="width:220px;">Procurement ID</th>
+    <td><?= htmlspecialchars($procurement['procurement_id']) ?></td>
+</tr>
+
+<tr>
+    <th>Item Name</th>
+    <td><?= htmlspecialchars($procurement['item_name']) ?></td>
+</tr>
+
+<tr>
+    <th>Category</th>
+    <td><?= htmlspecialchars($procurement['category']) ?></td>
+</tr>
+
+<tr>
+    <th>Quantity</th>
+    <td><?= htmlspecialchars($procurement['quantity']) ?></td>
+</tr>
+
+<tr>
+    <th>Supplier</th>
+    <td><?= htmlspecialchars($procurement['supplier']) ?></td>
+</tr>
+
+<tr>
+    <th>Status</th>
+    <td><?= htmlspecialchars($procurement['status']) ?></td>
+</tr>
+
+</table>
+
+<br>
+
+<a href="index.php" class="btn btn-primary">
+
+Back to Procurement
+
+</a>
+
+<?php else: ?>
+
+<p>Procurement record not found.</p>
+
+<a href="index.php" class="btn btn-primary">
+
+Back
+
+</a>
+
+<?php endif; ?>
+
+</div>
+
+</div>
+
+<?php include "../../includes/footer.php"; ?>
