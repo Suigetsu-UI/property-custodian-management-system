@@ -1,9 +1,9 @@
-<form
-class="asset-form"
-method="POST"
-action="<?= isset($procurement)
-    ? 'edit_procurement.php?id=' . $id
-    : 'save_procurement.php'; ?>">
+<?php require_once __DIR__ . "/../../includes/asset_functions.php"; $default_procurement_id = generateProcurementID(); ?>
+<form class="asset-form" method="POST" action="save_procurement.php">
+
+    <h2><?= isset($procurement) ? "Edit Procurement" : "Add Procurement" ?></h2>
+
+    <input type="hidden" name="id" value="<?= htmlspecialchars((string) ($id ?? '')) ?>">
 
     <div class="form-row">
 
@@ -11,8 +11,9 @@ action="<?= isset($procurement)
 
         <input
             type="text"
+            id="procurementID"
             name="procurement_id"
-            value="<?= $procurement['procurement_id'] ?? 'PRC-000001'; ?>"
+            value="<?= htmlspecialchars($procurement['procurement_id'] ?? $default_procurement_id) ?>"
             readonly>
 
     </div>
@@ -22,10 +23,10 @@ action="<?= isset($procurement)
         <label>Item Name</label>
 
         <input
-    type="text"
-    name="item_name"
-    value="<?= htmlspecialchars($procurement['item_name'] ?? '') ?>"
-    required>
+            type="text"
+            name="item_name"
+            value="<?= htmlspecialchars($procurement['item_name'] ?? '') ?>"
+            required>
 
     </div>
 
@@ -35,23 +36,12 @@ action="<?= isset($procurement)
 
         <select name="category">
 
-<option <?= (($procurement['category'] ?? '') == 'Computer') ? 'selected' : '' ?>>
-Computer
-</option>
+            <option <?= (($procurement['category'] ?? '') == 'Computer') ? 'selected' : '' ?>>Computer</option>
+            <option <?= (($procurement['category'] ?? '') == 'Furniture') ? 'selected' : '' ?>>Furniture</option>
+            <option <?= (($procurement['category'] ?? '') == 'Office Equipment') ? 'selected' : '' ?>>Office Equipment</option>
+            <option <?= (($procurement['category'] ?? '') == 'Electronics') ? 'selected' : '' ?>>Electronics</option>
 
-<option <?= (($procurement['category'] ?? '') == 'Furniture') ? 'selected' : '' ?>>
-Furniture
-</option>
-
-<option <?= (($procurement['category'] ?? '') == 'Office Equipment') ? 'selected' : '' ?>>
-Office Equipment
-</option>
-
-<option <?= (($procurement['category'] ?? '') == 'Electronics') ? 'selected' : '' ?>>
-Electronics
-</option>
-
-</select>
+        </select>
 
     </div>
 
@@ -60,11 +50,11 @@ Electronics
         <label>Quantity</label>
 
         <input
-    type="number"
-    name="quantity"
-    min="1"
-    value="<?= $procurement['quantity'] ?? 1 ?>"
-    required>
+            type="number"
+            name="quantity"
+            min="1"
+            value="<?= $procurement['quantity'] ?? 1 ?>"
+            required>
 
     </div>
 
@@ -73,10 +63,10 @@ Electronics
         <label>Supplier</label>
 
         <input
-    type="text"
-    name="supplier"
-    value="<?= htmlspecialchars($procurement['supplier'] ?? '') ?>"
-    required>
+            type="text"
+            name="supplier"
+            value="<?= htmlspecialchars($procurement['supplier'] ?? '') ?>"
+            required>
 
     </div>
 
@@ -86,32 +76,17 @@ Electronics
 
         <select name="status">
 
-<option <?= (($procurement['status'] ?? '') == 'Pending') ? 'selected' : '' ?>>
-Pending
-</option>
+            <option <?= (($procurement['status'] ?? '') == 'Pending') ? 'selected' : '' ?>>Pending</option>
+            <option <?= (($procurement['status'] ?? '') == 'Approved') ? 'selected' : '' ?>>Approved</option>
+            <option <?= (($procurement['status'] ?? '') == 'Ordered') ? 'selected' : '' ?>>Ordered</option>
+            <option <?= (($procurement['status'] ?? '') == 'Delivered') ? 'selected' : '' ?>>Delivered</option>
 
-<option <?= (($procurement['status'] ?? '') == 'Approved') ? 'selected' : '' ?>>
-Approved
-</option>
-
-<option <?= (($procurement['status'] ?? '') == 'Ordered') ? 'selected' : '' ?>>
-Ordered
-</option>
-
-<option <?= (($procurement['status'] ?? '') == 'Delivered') ? 'selected' : '' ?>>
-Delivered
-</option>
-
-</select>
+        </select>
 
     </div>
 
-    <button
-        type="submit"
-        class="btn btn-primary">
-
+    <button type="submit" class="btn btn-primary">
         <?= isset($procurement) ? "Update Procurement" : "Save Procurement"; ?>
-
     </button>
 
 </form>

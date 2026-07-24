@@ -1,4 +1,4 @@
-<table class="asset-table">
+<table class="asset-table" id="maintenanceTable">
 
 <thead>
 
@@ -34,7 +34,7 @@ foreach ($maintenance as $index => $item):
 
 ?>
 
-<tr>
+<tr class="maintenance-row">
 
 <td><?= htmlspecialchars($item['maintenance_id']); ?></td>
 

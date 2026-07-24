@@ -28,7 +28,7 @@
 
         <option>Assigned</option>
 
-        <option>Maintenance</option>
+        <option>Under Maintenance</option>
 
         <option>Lost</option>
 

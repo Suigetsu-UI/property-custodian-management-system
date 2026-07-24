@@ -6,33 +6,46 @@ require_once '../../includes/asset_functions.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $asset = [
+    $inventoryId = trim($_POST["inventory_id"] ?? '');
+    $inventoryItem = $inventoryId !== '' ? getInventoryByID($inventoryId) : null;
 
-        "asset_id" => generateAssetID(),
+    if ($inventoryItem && (int) ($inventoryItem['quantity'] ?? 0) > 0) {
 
-        "asset_name" => $_POST["asset_name"],
+        $asset = [
 
-        "category" => $_POST["category"],
+            "asset_id" => generateAssetID(),
 
-        "brand" => $_POST["brand"],
+            "asset_name" => $inventoryItem['asset_name'],
 
-        "model" => $_POST["model"],
+            "category" => $inventoryItem['category'],
 
-        "serial_number" => $_POST["serial_number"],
+            "brand" => $_POST["brand"],
 
-        "acquisition_date" => $_POST["acquisition_date"],
+            "model" => $_POST["model"],
 
-        "purchase_cost" => $_POST["purchase_cost"],
+            "serial_number" => $_POST["serial_number"],
 
-        "supplier" => $_POST["supplier"],
+            "acquisition_date" => $_POST["acquisition_date"],
 
-        "location" => $_POST["location"],
+            "purchase_cost" => $_POST["purchase_cost"],
 
-        "remarks" => $_POST["remarks"]
+            "supplier" => $_POST["supplier"],
 
-    ];
+            "location" => $_POST["location"],
 
-    $_SESSION["assets"][] = $asset;
+            "remarks" => $_POST["remarks"],
+
+            "inventory_id" => $inventoryId,
+
+            "status" => "Available"
+
+        ];
+
+        $_SESSION["assets"][] = $asset;
+
+        decrementInventoryQuantity($inventoryId);
+
+    }
 
 }
 

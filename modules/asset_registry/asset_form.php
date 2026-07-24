@@ -35,10 +35,41 @@ readonly>
 
 </div>
 
+</div>
+
+<div class="form-row">
+
+<label>Select Inventory Item</label>
+
+<select name="inventory_id" id="inventoryItemSelect" required>
+
+<option value="">Select Inventory Item</option>
+
+<?php foreach (($_SESSION['inventory'] ?? []) as $item): ?>
+
+<?php if ((int) ($item['quantity'] ?? 0) > 0): ?>
+
+<option
+    value="<?= htmlspecialchars($item['inventory_id']) ?>"
+    data-name="<?= htmlspecialchars($item['asset_name']) ?>"
+    data-category="<?= htmlspecialchars($item['category']) ?>"
+>
+<?= htmlspecialchars($item['inventory_id'] . ' - ' . $item['asset_name'] . ' (Qty: ' . $item['quantity'] . ')') ?>
+</option>
+
+<?php endif; ?>
+
+<?php endforeach; ?>
+
+</select>
+
+</div>
+
+<div class="form-row">
 
 <label>Asset Name</label>
 
-<input type="text" name="asset_name">
+<input type="text" id="assetNameField" name="asset_name" readonly placeholder="Auto-filled from Inventory">
 
 </div>
 
@@ -46,17 +77,7 @@ readonly>
 
 <label>Category</label>
 
-<select name="category">
-
-<option>Computer</option>
-
-<option>Furniture</option>
-
-<option>Laboratory Equipment</option>
-
-<option>Office Equipment</option>
-
-</select>
+<input type="text" id="assetCategoryField" name="category" readonly placeholder="Auto-filled from Inventory">
 
 </div>
 

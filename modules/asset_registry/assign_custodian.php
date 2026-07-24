@@ -16,6 +16,11 @@ if (!isset($_SESSION['assets'][$id])) {
 
 $asset = $_SESSION['assets'][$id];
 
+if (($asset['status'] ?? 'Available') === 'Under Maintenance') {
+    header("Location:index.php?error=maintenance");
+    exit();
+}
+
 include '../../includes/header.php';
 include '../../includes/sidebar.php';
 

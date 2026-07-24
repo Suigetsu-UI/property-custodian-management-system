@@ -1,28 +1,48 @@
 <?php
 
-session_start();
-
+require_once "../../auth/check_auth.php";
 require_once "../../includes/asset_functions.php";
 
 if (!isset($_SESSION['inventory'])) {
     $_SESSION['inventory'] = [];
 }
 
-$inventory = [
+$id = isset($_POST['id']) && $_POST['id'] !== ''
+    ? (int) $_POST['id']
+    : null;
 
-    'inventory_id' => generateInventoryID(),
+if ($id !== null && isset($_SESSION['inventory'][$id])) {
 
-    'asset_name' => $_POST['asset_name'] ?? '',
+    $_SESSION['inventory'][$id] = [
 
-    'category' => $_POST['category'] ?? '',
+        'inventory_id' => $_POST['inventory_id'] ?? $_SESSION['inventory'][$id]['inventory_id'],
 
-    'quantity' => $_POST['quantity'] ?? 1,
+        'asset_name' => $_POST['asset_name'],
 
-    'condition' => $_POST['condition'] ?? 'Good'
+        'category' => $_POST['category'],
 
-];
+        'quantity' => $_POST['quantity'] ?? 1,
 
-$_SESSION['inventory'][] = $inventory;
+        'condition' => $_POST['condition'] ?? 'Good'
+
+    ];
+
+} else {
+
+    $_SESSION['inventory'][] = [
+
+        'inventory_id' => $_POST['inventory_id'] ?? generateInventoryID(),
+
+        'asset_name' => $_POST['asset_name'],
+
+        'category' => $_POST['category'],
+
+        'quantity' => $_POST['quantity'] ?? 1,
+
+        'condition' => $_POST['condition'] ?? 'Good'
+
+    ];
+}
 
 header("Location: index.php");
 

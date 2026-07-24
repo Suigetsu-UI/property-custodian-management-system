@@ -1,6 +1,7 @@
 <?php
 
 require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/asset_functions.php";
 
 if (!isset($_SESSION['procurement'])) {
 
@@ -8,21 +9,46 @@ if (!isset($_SESSION['procurement'])) {
 
 }
 
-$_SESSION['procurement'][] = [
+$id = isset($_POST['id']) && $_POST['id'] !== ''
+    ? (int) $_POST['id']
+    : null;
 
-    "procurement_id" => $_POST["procurement_id"],
+if ($id !== null && isset($_SESSION['procurement'][$id])) {
 
-    "item_name" => $_POST["item_name"],
+    $_SESSION['procurement'][$id] = [
 
-    "category" => $_POST["category"],
+        "procurement_id" => $_POST["procurement_id"] ?? $_SESSION['procurement'][$id]['procurement_id'],
 
-    "quantity" => $_POST["quantity"],
+        "item_name" => $_POST["item_name"],
 
-    "supplier" => $_POST["supplier"],
+        "category" => $_POST["category"],
 
-    "status" => $_POST["status"]
+        "quantity" => $_POST["quantity"],
 
-];
+        "supplier" => $_POST["supplier"],
+
+        "status" => $_POST["status"]
+
+    ];
+
+} else {
+
+    $_SESSION['procurement'][] = [
+
+        "procurement_id" => $_POST["procurement_id"] ?? generateProcurementID(),
+
+        "item_name" => $_POST["item_name"],
+
+        "category" => $_POST["category"],
+
+        "quantity" => $_POST["quantity"],
+
+        "supplier" => $_POST["supplier"],
+
+        "status" => $_POST["status"]
+
+    ];
+}
 
 header("Location: index.php");
 exit;

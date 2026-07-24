@@ -1,4 +1,4 @@
-<table class="asset-table">
+<table class="asset-table" id="inventoryTable">
 
 <thead>
 
@@ -24,19 +24,17 @@
 
 <?php
 
-
 $inventory = $_SESSION['filtered_inventory']
     ?? $_SESSION['inventory']
     ?? [];
 
 unset($_SESSION['filtered_inventory']);
 
-
 foreach ($inventory as $index => $item):
 
 ?>
 
-<tr>
+<tr class="inventory-row">
 
 <td><?= $item['inventory_id']; ?></td>
 

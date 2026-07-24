@@ -1,4 +1,4 @@
-<table class="asset-table">
+<table class="asset-table" id="procurementTable">
 
 <thead>
 
@@ -20,13 +20,17 @@
 
 <?php
 
-$procurement = $_SESSION['procurement'] ?? [];
+$procurement = $_SESSION['filtered_procurement']
+    ?? $_SESSION['procurement']
+    ?? [];
+
+unset($_SESSION['filtered_procurement']);
 
 foreach ($procurement as $index => $item):
 
 ?>
 
-<tr>
+<tr class="procurement-row">
 
 <td><?= htmlspecialchars($item['procurement_id']); ?></td>
 

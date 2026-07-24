@@ -25,6 +25,7 @@ $inventory = $_SESSION['inventory'][$id] ?? null;
 
 <table class="asset-table">
 
+
 <tr>
     <th style="width:220px;">Inventory ID</th>
     <td><?= htmlspecialchars($inventory['inventory_id']) ?></td>

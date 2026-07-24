@@ -10,7 +10,7 @@ $filtered = [];
 
 foreach ($_SESSION['inventory'] ?? [] as $item) {
 
-    $matchKeyword =
+$matchKeyword =
         $keyword === '' ||
 
         strpos(strtolower($item['inventory_id']), $keyword) !== false ||
@@ -20,7 +20,7 @@ foreach ($_SESSION['inventory'] ?? [] as $item) {
         strpos(strtolower($item['category']), $keyword) !== false ||
 
         strpos(strtolower($item['condition']), $keyword) !== false;
-
+        
     $matchCategory =
         $category === '' ||
         $item['category'] === $category;

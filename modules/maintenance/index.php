@@ -15,17 +15,17 @@ include "../../includes/header.php";
 
 <hr>
 
-<div class="toolbar">
+<br>
 
-<form method="GET" action="search_maintenance.php" class="toolbar">
+<div class="search-toolbar">
 
 <input
     type="text"
-    name="search"
-    placeholder="Search Maintenance..."
+    id="searchInput"
+    placeholder="Search by Maintenance ID, Asset Name, Type..."
 >
 
-<select name="status">
+<select id="statusFilter">
 
     <option value="">All Status</option>
 
@@ -37,29 +37,33 @@ include "../../includes/header.php";
 
 </select>
 
-<button
-    type="submit"
-    class="btn btn-primary">
-
-Search
-
-</button>
-
-<a href="add_maintenance.php"
-class="btn btn-primary">
+<button id="openMaintenanceModal" class="btn btn-primary">
 
 Add Maintenance
 
-</a>
-
-</form>
+</button>
 
 </div>
+
+<br>
 
 <?php include "maintenance_table.php"; ?>
 
+<div id="maintenanceModal" class="modal">
+
+    <div class="modal-content">
+
+        <span class="close-modal">&times;</span>
+
+        <?php include "maintenance_form.php"; ?>
+
+    </div>
+
+</div>
+
 </div>
 
 </div>
 
+<script src="<?= BASE_URL ?>assets/js/maintenance.js"></script>
 <?php include "../../includes/footer.php"; ?>

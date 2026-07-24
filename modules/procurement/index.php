@@ -16,12 +16,14 @@ include "../../includes/header.php";
 
         <hr>
 
-        <div class="toolbar">
+        <br>
+
+        <div class="search-toolbar">
 
             <input
                 type="text"
-                id="procurementSearch"
-                placeholder="Search Procurement..."
+                id="searchInput"
+                placeholder="Search by Procurement ID, Item, Supplier..."
             >
 
             <select id="statusFilter">
@@ -39,16 +41,26 @@ include "../../includes/header.php";
                 <option>Supplier C</option>
             </select>
 
-            <a href="add_procurement.php" class="btn btn-primary">
-    Add Procurement
-</a>
+            <button id="openProcurementModal" class="btn btn-primary">
+                Add Procurement
+            </button>
 
         </div>
 
+        <br>
+
         <?php include "procurement_table.php"; ?>
+
+        <div id="procurementModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <?php include "procurement_form.php"; ?>
+            </div>
+        </div>
 
     </div>
 
 </div>
 
+<script src="<?= BASE_URL ?>assets/js/procurement.js"></script>
 <?php include "../../includes/footer.php"; ?>

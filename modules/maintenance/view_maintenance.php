@@ -29,6 +29,11 @@ $maintenance = $_SESSION['maintenance'][$id] ?? null;
 </tr>
 
 <tr>
+    <th>Asset ID</th>
+    <td><?= htmlspecialchars($maintenance['asset_id'] ?? 'Not Linked') ?></td>
+</tr>
+
+<tr>
     <th>Asset Name</th>
     <td><?= htmlspecialchars($maintenance['asset_name']) ?></td>
 </tr>
@@ -46,6 +51,11 @@ $maintenance = $_SESSION['maintenance'][$id] ?? null;
 <tr>
     <th>Status</th>
     <td><?= htmlspecialchars($maintenance['status']) ?></td>
+</tr>
+
+<tr>
+    <th>Custodian</th>
+    <td><?= !empty($maintenance['custodian']) ? htmlspecialchars($maintenance['custodian']) : 'Not Assigned' ?></td>
 </tr>
 
 </table>

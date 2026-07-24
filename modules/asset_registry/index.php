@@ -24,11 +24,36 @@ require_once "../../auth/check_auth.php";
 
 <br>
 
+<?php if (($_GET['error'] ?? '') === 'assigned'): ?>
+
+<div class="error-message">
+
+    This asset is currently assigned to a custodian and cannot be deleted while assigned.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
+<?php if (($_GET['error'] ?? '') === 'maintenance'): ?>
+
+<div class="error-message">
+
+    This asset is currently under maintenance. Please complete the maintenance record before assigning, returning, or deleting this asset.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
 <?php include 'asset_search.php'; ?>
 
 <br>
 
 <?php include 'asset_table.php'; ?>
+
 <?php include 'asset_form.php'; ?>
 </div>
 

@@ -44,6 +44,11 @@ include '../../includes/sidebar.php';
 </tr>
 
 <tr>
+    <th>Status</th>
+    <td><?= htmlspecialchars($asset['status'] ?? 'Available') ?></td>
+</tr>
+
+<tr>
     <th>Brand</th>
     <td><?= htmlspecialchars($asset['brand']) ?></td>
 </tr>

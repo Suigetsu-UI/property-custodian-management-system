@@ -10,6 +10,7 @@ require_once "../../auth/check_auth.php";
 require_once "../../includes/asset_functions.php";
 include "../../includes/header.php";
 
+$id = null;
 
 ?>
 

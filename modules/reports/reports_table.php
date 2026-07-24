@@ -1,4 +1,4 @@
-<table class="asset-table">
+<table class="asset-table" id="reportTable">
 
     <thead>
 
@@ -18,6 +18,40 @@
 
     <tbody>
 
+        <?php
+
+        $reports = $_SESSION['filtered_reports']
+            ?? $_SESSION['reports']
+            ?? [];
+
+        unset($_SESSION['filtered_reports']);
+
+        foreach ($reports as $index => $item):
+
+        ?>
+
+        <tr class="report-row">
+
+            <td><?= htmlspecialchars($item['report_id']); ?></td>
+            <td><?= htmlspecialchars($item['report_name']); ?></td>
+            <td><?= htmlspecialchars($item['report_type']); ?></td>
+            <td><?= htmlspecialchars($item['generated_by']); ?></td>
+            <td><?= htmlspecialchars($item['date_generated']); ?></td>
+            <td><?= htmlspecialchars($item['status']); ?></td>
+            <td>
+
+                <a href="view_report.php?id=<?= $index ?>" class="btn btn-primary">View</a>
+                <a href="download_report.php?id=<?= $index ?>" class="btn btn-warning">Download</a>
+                <a href="delete_report.php?id=<?= $index ?>" class="btn btn-danger" onclick="return confirm('Delete this report?');">Delete</a>
+
+            </td>
+
+        </tr>
+
+        <?php endforeach; ?>
+
+        <?php if (empty($reports)): ?>
+
         <tr>
 
             <td colspan="7" style="text-align:center; padding:40px;">
@@ -27,6 +61,8 @@
             </td>
 
         </tr>
+
+        <?php endif; ?>
 
     </tbody>
 

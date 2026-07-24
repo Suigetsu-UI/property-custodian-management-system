@@ -136,3 +136,15 @@ function applyFilters() {
 searchInput.addEventListener("keyup", applyFilters);
 categoryFilter.addEventListener("change", applyFilters);
 statusFilter.addEventListener("change", applyFilters);
+
+const inventoryItemSelect = document.getElementById("inventoryItemSelect");
+const assetNameField = document.getElementById("assetNameField");
+const assetCategoryField = document.getElementById("assetCategoryField");
+
+if (inventoryItemSelect && assetNameField && assetCategoryField) {
+    inventoryItemSelect.addEventListener("change", function () {
+        const selectedOption = inventoryItemSelect.options[inventoryItemSelect.selectedIndex];
+        assetNameField.value = selectedOption ? (selectedOption.getAttribute("data-name") || "") : "";
+        assetCategoryField.value = selectedOption ? (selectedOption.getAttribute("data-category") || "") : "";
+    });
+}
