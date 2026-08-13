@@ -25,6 +25,13 @@ if (isset($_SESSION['assets'][$id])) {
 
     }
 
+    if ($status === 'Lost') {
+
+        header("Location:index.php?error=lost");
+        exit();
+
+    }
+
     if ($status === 'Assigned') {
 
         header("Location:index.php?error=assigned");
@@ -40,7 +47,6 @@ if (isset($_SESSION['assets'][$id])) {
 
     unset($_SESSION['assets'][$id]);
 
-    // Re-index the array
     $_SESSION['assets'] = array_values($_SESSION['assets']);
 
 }

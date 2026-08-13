@@ -21,6 +21,11 @@ if (($asset['status'] ?? 'Available') === 'Under Maintenance') {
     exit();
 }
 
+if (($asset['status'] ?? 'Available') === 'Lost') {
+    header("Location:index.php?error=lost");
+    exit();
+}
+
 include '../../includes/header.php';
 include '../../includes/sidebar.php';
 

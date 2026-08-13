@@ -65,3 +65,19 @@ if (statusFilter) {
 if (resultFilter) {
     resultFilter.addEventListener("change", applyAuditFilters);
 }
+
+const auditAssetSelect = document.getElementById("auditAssetSelect");
+const auditAssetName = document.getElementById("auditAssetName");
+const auditCategory = document.getElementById("auditCategory");
+const auditCustodian = document.getElementById("auditCustodian");
+const auditAssetStatus = document.getElementById("auditAssetStatus");
+
+if (auditAssetSelect && auditAssetName && auditCategory && auditCustodian && auditAssetStatus) {
+    auditAssetSelect.addEventListener("change", function () {
+        const selectedOption = auditAssetSelect.options[auditAssetSelect.selectedIndex];
+        auditAssetName.value = selectedOption ? (selectedOption.getAttribute("data-name") || "") : "";
+        auditCategory.value = selectedOption ? (selectedOption.getAttribute("data-category") || "") : "";
+        auditCustodian.value = selectedOption ? (selectedOption.getAttribute("data-custodian") || "") : "";
+        auditAssetStatus.value = selectedOption ? (selectedOption.getAttribute("data-status") || "") : "";
+    });
+}

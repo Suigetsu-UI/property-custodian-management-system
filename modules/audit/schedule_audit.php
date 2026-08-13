@@ -3,13 +3,6 @@
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/asset_functions.php";
 
-if (!function_exists('generateAuditID')) {
-    function generateAuditID()
-    {
-        return "AUD-" . str_pad(count($_SESSION['audits']) + 1, 6, "0", STR_PAD_LEFT);
-    }
-}
-
 include "../../includes/header.php";
 
 if (!isset($_SESSION['audits'])) {
@@ -20,14 +13,26 @@ $id = null;
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
+    $assetId = trim($_POST["asset_id"] ?? '');
+    $linkedAsset = $assetId !== '' ? getAssetByID($assetId) : null;
+    $result = $_POST["result"];
+
     $_SESSION['audits'][] = [
         "audit_id" => $_POST["audit_id"] ?? generateAuditID(),
-        "asset_name" => $_POST["asset_name"],
+        "asset_id" => $assetId,
+        "asset_name" => $linkedAsset['asset_name'] ?? '',
+        "category" => $linkedAsset['category'] ?? '',
+        "custodian" => $linkedAsset['custodian'] ?? '',
         "auditor" => $_POST["auditor"],
         "audit_date" => $_POST["audit_date"],
-        "status" => $_POST["status"],
-        "result" => $_POST["result"]
+        "result" => $result,
+        "remarks" => $_POST["remarks"] ?? '',
+        "status" => $_POST["status"]
     ];
+
+    if ($assetId !== '') {
+        updateAssetStatusFromAudit($assetId, $result);
+    }
 
     header("Location: index.php");
     exit;

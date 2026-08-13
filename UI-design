@@ -1,0 +1,558 @@
+
+<!DOCTYPE html><html lang="en"><head data-llama-id="0">
+  <meta charset="UTF-8" data-llama-id="1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-llama-id="2">
+  <title data-llama-id="3">Bur at Admin Dashboard - Attendance</title>
+  <script src="https://cdn.tailwindcss.com" data-llama-id="4"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" data-llama-id="5">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" data-llama-id="6">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js" data-llama-id="7"></script>
+  <style data-llama-id="8">
+    /* Subtle global background to mimic the beige content area edges */
+    body { background: #efe7d0; font-family: Inter, ui-sans-serif, system-ui, -apple-system; }
+    /* Card shadow mimic */
+    .card { background: #ffffff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+    /* Left rail colors */
+    .sidebar { background: #121212; color: #e2e2e2; min-height: 100vh; }
+    .sidebar .logo { font-weight: 800; letter-spacing:.5px; font-size: 22px; }
+    .sidebar .section { padding: 14px 16px; color:#cbd5e1; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+    .sidebar a { color: #e2e8f0; text-decoration: none; display: block; padding: 12px 14px; border-radius: 12px; }
+    .sidebar a.active { background: #2b1e2d; color:#fff; }
+    .sidebar .user { display:flex; align-items:center; gap:10px; padding:16px; margin: 12px; border-radius:12px; background: rgba(255,255,255,.04); }
+    .avatar { width:34px; height:34px; border-radius:50%; background:#f472b6; display:inline-flex; align-items:center; justify-content:center; color:white; font-weight:700; }
+    /* Hero gradient panel */
+    .hero { background: linear-gradient(135deg, #2b1222 0%, #3a0a2e 60%, #3c1a3b 100%); color: #fff; border-radius: 28px; padding: 40px; position: relative; overflow:hidden; }
+    .hero h1 { font-size: 52px; line-height: 1.05; margin: 0; font-weight: 800; letter-spacing: -0.5px; }
+    .hero p { color:#e9d6c9; max-width: 600px; }
+    .hero .badge { position:absolute; right: -60px; bottom: -60px; width: 300px; height: 300px; border-radius: 50%; border: 3px solid rgba(255,255,255,.25); opacity:.25; }
+    .chip { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background: rgba(255,255,255,.08); color:#fff; font-weight:600; }
+
+    /* Top bar header mimic */
+    .topbar { height: 72px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; background:#fff; border-bottom:1px solid #e5e7eb; position: sticky; top:0; z-index: 10; }
+
+    /* Content wrapper to mimic screenshot spacing */
+    .content { padding: 28px; max-width: 1200px; margin: 0 auto; }
+
+    /* KPI tiles row */
+    .kpis { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:14px; margin-top: 18px; }
+
+    .kpi { padding:16px; border-radius:14px; background: #fff; display:flex; align-items: center; gap:14px; min-height: 90px; }
+    .kpi .icon { width:38px; height:38px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:#f2f0f7; color:#7c2d91; font-size:18px; }
+    .kpi h3 { margin:0; font-size:14px; color:#555; }
+    .kpi .val { font-size: 28px; font-weight: 800; color:#111; }
+
+    /* Cards grid below hero */
+    .grid-cards { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:18px; margin-top: 18px; }
+
+    .card.soft { background: #fff; padding: 16px; border-radius: 14px; border: 1px solid #eee; }
+
+    /* Small responsive tweaks */
+    @media (max-width: 1024px) {
+      .hero { padding: 28px; }
+      .hero h1 { font-size: 44px; }
+    }
+    @media (max-width: 700px) {
+      .topbar { padding: 0 12px; }
+      .hero { border-radius: 22px; padding: 20px; }
+      .hero h1 { font-size: 32px; }
+      .sidebar { width: 270px; }
+    }
+  </style>
+</head>
+<body class="bg-beige-100 antialiased" data-llama-id="9">
+  <!-- Left Sidebar -->
+  <aside class="sidebar fixed left-0 top-0 w-72 p-0 overflow-y-auto" aria-label="Sidebar" data-llama-id="10">
+    <div class="p-6 bg-gradient-to-b from-[#1e1e1e] to #0e0e0e" style="height:100vh; display:flex; flex-direction:column;" data-llama-id="11">
+      <div class="flex items-center justify-between mb-6" data-llama-id="12">
+        <div class="logo text-white" data-llama-id="13">SAAC</div>
+        <span class="badge badge-outline" style="background:#f472b6; color:white; padding:6px 10px; border-radius:999px; font-size:12px;" data-llama-id="14">LIVE</span>
+      </div>
+
+      <div class="user" data-llama-id="15">
+        <div class="avatar" data-llama-id="16">LA</div>
+        <div data-llama-id="17">
+          <div class="text-white font-semibold" style="font-size:14px;" data-llama-id="18">Local Administrator</div>
+          <div class="text-gray-300" style="font-size:12px;" data-llama-id="19">@admin</div>
+        </div>
+      </div>
+
+      <nav class="mt-4" aria-label="Main Navigation" style="flex:1;" data-llama-id="20">
+        <div class="section text-gray-300" data-llama-id="21">Menu</div>
+        <a href="#" class="active" style="background:#2b1e2d; color:#fff; border-radius:12px;" data-llama-id="22">
+          <i class="fa fa-grid-2" data-llama-id="23"></i> Dashboard
+        </a>
+        <a href="#" data-llama-id="24"><i class="fa fa-user" data-llama-id="25"></i> User Management</a>
+        <a href="#" data-llama-id="26"><i class="fa fa-calendar-check" data-llama-id="27"></i> Attendance Monitoring</a>
+        <a href="#" data-llama-id="28"><i class="fa fa-chart-simple" data-llama-id="29"></i> Reports</a>
+        <a href="#" data-llama-id="30"><i class="fa fa-sliders" data-llama-id="31"></i> System Settings</a>
+      </nav>
+
+      <div class="mt-auto" style="opacity:.8; font-size:12px; color:#bbb;" data-llama-id="32">
+        <div data-llama-id="33">© SAAC, 2026</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Topbar header -->
+  <header class="topbar" style="margin-left: 18rem;" data-llama-id="34">
+    <div class="flex items-center gap-3" data-llama-id="35">
+      <button class="btn btn-ghost square" aria-label="menu" data-llama-id="36">
+        <i class="fas fa-bars" data-llama-id="37"></i>
+      </button>
+      <div class="badge" style="padding:6px 10px; border-radius:999px; background:#f1f5f9; color:#374151; font-weight:600; font-size:12px;" data-llama-id="38">ADMINISTRATOR WORKSPACE</div>
+      <h2 style="font-size:22px; font-weight:800; margin-left:8px;" data-llama-id="39">Admin Dashboard</h2>
+    </div>
+
+    <div class="flex items-center gap-4" data-llama-id="40">
+      <div style="color:#374151; font-weight:600;" data-llama-id="41">
+        <div style="font-size:12px; color:#6b7280;" data-llama-id="42">Today</div>
+        <div data-llama-id="43">Jul 24, 2026</div>
+      </div>
+      <div class="avatar" style="width:40px; height:40px; font-size:14px;" data-llama-id="44">LA</div>
+      <div style="font-weight:600; color:#374151;" data-llama-id="45">Local Administrator</div>
+    </div>
+  </header>
+
+  <!-- Main content area -->
+  <main class="content" style="margin-left: 18rem;" data-llama-id="46">
+    <!-- Hero -->
+    <section class="hero card" style="margin-top: 16px;" data-llama-id="47">
+      <div class="badge" aria-label="decorative" style="background: rgba(255,255,255,.15);" data-llama-id="48"></div>
+      <div style="display:flex; gap:20px; align-items:center;" data-llama-id="49">
+        <div class="chip" style="background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.25);" data-llama-id="50">
+          <i class="fa fa-info-circle" data-llama-id="51"></i> School Attendance Overview
+        </div>
+      </div>
+      <h1 style="margin-top:16px;" data-llama-id="52">Welcome Back, Local Administrator!</h1>
+      <p style="margin-top:14px;" data-llama-id="53">
+        Monitor school activities, access important records, and keep daily operations organized.
+      </p>
+
+      <!-- decorative crest on right -->
+      <div class="badge" style="right:0; bottom:0; width:260px; height:260px; position:absolute; border-radius:50%; background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.5), rgba(255,255,255,0) 40%), linear-gradient(135deg, rgba(55,0,60,.6), rgba(40,0,40,.9)); opacity:.4;" data-llama-id="54"></div>
+      <!-- gradient circle outline arcs mimic -->
+      <svg width="0" height="0" style="position:absolute" data-llama-id="55"></svg>
+    </section>
+
+    <!-- Live data status bar -->
+    <section class="card soft" style="display:flex; align-items:center; justify-content:space-between; padding:18px; margin-top:18px;" data-llama-id="56">
+      <div style="display:flex; align-items:center; gap:12px;" data-llama-id="57">
+        <div class="icon" style="width:40px; height:40px; border-radius:10px; background:#fbe8a6; display:flex; align-items:center; justify-content:center;" data-llama-id="58">
+          <i class="fa fa-database" data-llama-id="59"></i>
+        </div>
+        <div data-llama-id="60">
+          <div style="font-weight:700; font-size:14px; color:#6b4b1c;" data-llama-id="61">Live data status</div>
+          <div style="font-size:12px; color:#6b4b1c;" data-llama-id="62">Some dashboard insights will appear after the related attendance modules are configured.</div>
+        </div>
+      </div>
+      <div class="badge" style="padding:8px 14px; border-radius:999px; background:#fff0f2; color:#8b1a3a; font-weight:700;" data-llama-id="63">
+        6 summaries
+      </div>
+    </section>
+
+    <!-- KPI Tiles -->
+    <section class="kpis" aria-label="Key performance indicators" style="margin-top:14px;" data-llama-id="64">
+      <div class="kpi" style="border:1px solid #f0e2e0;" data-llama-id="65">
+        <div class="icon" style="background:#fcdfe7; color:#c0392b;" data-llama-id="66"><i class="fa fa-user-graduate" data-llama-id="67"></i></div>
+        <div data-llama-id="68">
+          <h3 data-llama-id="69">Total students</h3>
+          <div class="val" data-llama-id="70">1</div>
+        </div>
+      </div>
+      <div class="kpi" style="border:1px solid #f0e2e0;" data-llama-id="71">
+        <div class="icon" style="background:#e7f0ff; color:#1d4ed8;" data-llama-id="72"><i class="fa fa-chalkboard-user" data-llama-id="73"></i></div>
+        <div data-llama-id="74">
+          <h3 data-llama-id="75">Total teachers</h3>
+          <div class="val" data-llama-id="76">1</div>
+        </div>
+      </div>
+      <div class="kpi" style="border:1px solid #f0e2e0;" data-llama-id="77">
+        <div class="icon" style="background:#e6fff0; color:#16a34a;" data-llama-id="78"><i class="fa fa-user-check" data-llama-id="79"></i></div>
+        <div data-llama-id="80">
+          <h3 data-llama-id="81">Present today</h3>
+          <div class="val" data-llama-id="82">87</div>
+        </div>
+      </div>
+      <div class="kpi" style="border:1px solid #f0e2e0;" data-llama-id="83">
+        <div class="icon" style="background:#f3e8ff; color:#6d28d9;" data-llama-id="84"><i class="fa fa-hourglass-half" data-llama-id="85"></i></div>
+        <div data-llama-id="86">
+          <h3 data-llama-id="87">Late today</h3>
+          <div class="val" data-llama-id="88">4</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cards below hero (quick stats) -->
+    <section class="grid-cards" aria-label="Overview cards" style="margin-top:18px;" data-llama-id="89">
+      <div class="card soft" style="padding:18px;" data-llama-id="90">
+        <div style="font-weight:700; color:#e11d48; font-size:12px; letter-spacing:.5px; text-transform:uppercase;" data-llama-id="91">Attendance metrics</div>
+        <div style="font-size:22px; font-weight:800; margin-top:6px;" data-llama-id="92">Trends and distribution</div>
+        <p style="color:#555; margin-top:6px; max-width:540px;" data-llama-id="93">
+          Charts illustrate attendance distribution across classes and days. Use filters to explore.
+        </p>
+        <div id="chart1" style="height:180px; width:100%;" data-llama-id="94"></div>
+      </div>
+
+      <div class="card soft" style="padding:18px;" data-llama-id="95">
+        <div style="font-weight:700; color:#e11d48; font-size:12px; letter-spacing:.5px; text-transform:uppercase;" data-llama-id="96">Today’s logs</div>
+        <div style="font-size:22px; font-weight:800; margin-top:6px;" data-llama-id="97">Recent activity</div>
+        <p style="color:#555; margin-top:6px;" data-llama-id="98">
+          Quick glance at the latest attendance entries and actions.
+        </p>
+        <ul style="margin:0; padding-left:18px; color:#555;" data-llama-id="99">
+          <li data-llama-id="100">1 new absence</li>
+          <li data-llama-id="101">2 late entries</li>
+          <li data-llama-id="102">3 present today</li>
+        </ul>
+      </div>
+
+      <div class="card soft" style="padding:18px;" data-llama-id="103">
+        <div style="font-weight:700; color:#e11d48; font-size:12px; letter-spacing:.5px; text-transform:uppercase;" data-llama-id="104">Upcoming</div>
+        <div style="font-size:22px; font-weight:800; margin-top:6px;" data-llama-id="105">Upcoming events</div>
+        <p style="color:#555; margin-top:6px;" data-llama-id="106">
+          Schedule and reminders for admins.
+        </p>
+        <div class="chip" style="margin-top:6px;" data-llama-id="107">Reminders enabled</div>
+      </div>
+
+      <div class="card soft" style="padding:18px;" data-llama-id="108">
+        <div style="font-weight:700; color:#e11d48; font-size:12px; letter-spacing:.5px; text-transform:uppercase;" data-llama-id="109">Snapshot</div>
+        <div style="font-size:22px; font-weight:800; margin-top:6px;" data-llama-id="110">Today’s snapshot</div>
+        <p style="color:#555; margin-top:6px;" data-llama-id="111">
+          Quick glance of current snapshot data.
+        </p>
+        <div id="chart2" style="height:140px; width:100%;" data-llama-id="112"></div>
+      </div>
+    </section>
+
+    <!-- A sample content section to mimic long page -->
+    <section class="card soft" style="margin-top:28px; padding:20px;" data-llama-id="113">
+      <h3 style="margin:0 0 6px 0;" data-llama-id="114">Dashboard summary</h3>
+      <p style="margin:0; color:#555;" data-llama-id="115">
+        Role-specific figures from the attendance database. This area would normally host a more detailed table or charts.
+      </p>
+      <div class="grid-cards" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-top:14px;" data-llama-id="116">
+        <div class="card soft" style="padding:14px;" data-llama-id="117">
+          <div style="font-size:12px; color:#888; text-transform:uppercase;" data-llama-id="118">Total students</div>
+          <div style="font-size:28px; font-weight:800;" data-llama-id="119">1</div>
+        </div>
+        <div class="card soft" style="padding:14px;" data-llama-id="120">
+          <div style="font-size:12px; color:#888; text-transform:uppercase;" data-llama-id="121">Total teachers</div>
+          <div style="font-size:28px; font-weight:800;" data-llama-id="122">1</div>
+        </div>
+        <div class="card soft" style="padding:14px;" data-llama-id="123">
+          <div style="font-size:12px; color:#888; text-transform:uppercase;" data-llama-id="124">Present now</div>
+          <div style="font-size:28px; font-weight:800;" data-llama-id="125">—</div>
+        </div>
+        <div class="card soft" style="padding:14px;" data-llama-id="126">
+          <div style="font-size:12px; color:#888; text-transform:uppercase;" data-llama-id="127">Absent today</div>
+          <div style="font-size:28px; font-weight:800;" data-llama-id="128">0</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script data-llama-id="129">
+    // Simple charts to mimic the look
+    var chart1 = echarts.init(document.getElementById('chart1'));
+    chart1.setOption({
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [120, 200, 150, 80, 70, 110, 130], type: 'line', smooth: true, areaStyle: {} }]
+    });
+
+    var chart2 = echarts.init(document.getElementById('chart2'));
+    chart2.setOption({
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: ['Today','Yesterday','2d ago','3d ago'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [8, 12, 9, 11], type: 'bar', barWidth: 20 }]
+    });
+  </script>
+
+
+  <!-- PostHog -->
+  <script>
+      !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="Ii init Di qi Sr Bi Zi Pi capture calculateEventProperties Yi register register_once register_for_session unregister unregister_for_session Xi getFeatureFlag getFeatureFlagPayload getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync Ji identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException startExceptionAutocapture stopExceptionAutocapture loadToolbar get_property getSessionProperty Wi Vi createPersonProfile setInternalOrTestUser Gi Fi Ki opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing $i debug Tr Ui getPageViewId captureTraceFeedback captureTraceMetric Ri".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+      posthog.init('phc_tJVjPhda8vybzKHSZ6yaq4Q9wdJ5ZW7Rpf2kf3ChAjLL', {
+          api_host: 'https://us.i.posthog.com',
+          person_profiles: 'always',
+          recordCrossOriginIframes: true,
+      })
+
+        posthog.identify('11337', {
+          email: 'jijiyakuza@gmail.com',
+          name: 'Burat8080',
+          user_id: 11337,
+          organization_id: 21887,
+          plan: ''
+        })
+  </script>
+<script>
+(function() {
+  // ============================================================================
+  // LEO Page Builder - Iframe Communication Script
+  // ============================================================================
+  // This script handles postMessage communication for the LEO page builder system.
+  //
+  // IMPORTANT: Origin-Based Message Routing
+  // ========================================
+  // There are TWO iframe communication systems in LlamaPress that both use
+  // { source: 'leonardo' } messages:
+  //
+  // 1. LEONARDO (Full App Builder) - localhost:8000 -> localhost:3000
+  //    - Parent: LlamaBot/FastAPI at localhost:8000
+  //    - Child: Rails app at localhost:3000
+  //    - message_handler.js handles these (cross-origin)
+  //
+  // 2. LEO (Page Builder) - localhost:3000 -> localhost:3000
+  //    - Parent: /pages/:id/chat at localhost:3000
+  //    - Child: /pages/:id/preview at localhost:3000 (THIS PAGE)
+  //    - THIS SCRIPT handles these messages (same-origin)
+  //
+  // We distinguish between them by checking event.origin:
+  // - Same-origin (localhost:3000) = Leo -> respond HERE
+  // - Cross-origin (localhost:8000) = Leonardo -> ignore here, let message_handler.js handle it
+  // ============================================================================
+
+  // DEBUG: Log when this script runs
+  console.log("[page.html.erb] Script starting, will set view_path to: app/views/pages/preview.html.erb");
+
+  // Wrap in IIFE to avoid global scope pollution and redeclaration errors
+  if (window.leonardoScriptLoaded) {
+    console.log("[page.html.erb] Already loaded, skipping");
+    return;
+  }
+  window.leonardoScriptLoaded = true;
+
+  // Set page metadata from server-side variables (injected above)
+  // These come from Rails @view_path which contains the actual view file path
+  window.page_loaded_at = 1785297439.8825116;
+  window.request_path = "/pages/45672/preview";
+  window.view_path = "app/views/pages/preview.html.erb";
+  console.log("[page.html.erb] Set window.view_path =", window.view_path);
+
+  // Initialize full_html on DOMContentLoaded
+  window.addEventListener('DOMContentLoaded', () => {
+    window.full_html = document.documentElement.outerHTML;
+    console.log("[page.html.erb] Page metadata initialized:", {
+      request_path: window.request_path,
+      view_path: window.view_path,
+      page_loaded_at: window.page_loaded_at
+    });
+  });
+
+  // Also set full_html immediately if DOM is already loaded
+  if (document.readyState === 'loading') {
+    // DOMContentLoaded hasn't fired yet, wait for it
+  } else {
+    // DOM is already loaded
+    window.full_html = document.documentElement.outerHTML;
+    console.log("[page.html.erb] Page metadata initialized (DOM already loaded):", {
+      request_path: window.request_path,
+      view_path: window.view_path,
+      page_loaded_at: window.page_loaded_at
+    });
+  }
+
+  window.addEventListener("message", (event) => {
+      // Only process messages with source 'leonardo'
+      if (event.data.source !== 'leonardo') { return; }
+
+      // CRITICAL: Only respond to SAME-ORIGIN messages (from Leo chat at localhost:3000)
+      // Cross-origin messages (from Leonardo at localhost:8000) are handled by
+      // message_handler.js (loaded via importmap in application.js), not here.
+      // This prevents duplicate responses and ensures correct view_path values.
+      if (event.origin !== window.location.origin) {
+          console.log("[page.html.erb] Ignoring cross-origin message (handled by message_handler.js):", event.origin);
+          return;
+      }
+
+      console.log("[page.html.erb] Processing same-origin message from Leo:", event.data);
+
+      // Handle element selector commands
+      if (event.data.type === 'enable-element-selector') {
+          window.enableElementSelector();
+          return;
+      }
+
+      if (event.data.type === 'disable-element-selector') {
+          window.disableElementSelector();
+          return;
+      }
+
+      // Handle debug info request (this is the main message type Leonardo sends)
+      if (event.data.type === 'get_debug_info') {
+          // Ensure we have the most up-to-date HTML content
+          window.full_html = document.documentElement.outerHTML;
+
+          console.log("Sending debug info back to Leonardo:", {
+              request_path: window.request_path,
+              view_path: window.view_path,
+              page_loaded_at: window.page_loaded_at
+          });
+
+          // Validate that we have current data
+          if (!window.request_path || !window.view_path) {
+              console.warn("Missing request_path or view_path - page may not be fully loaded");
+          }
+
+          event.source.postMessage({
+              source: 'llamapress',
+              full_html: window.full_html,
+              request_path: window.request_path,
+              view_path: window.view_path,
+              page_loaded_at: window.page_loaded_at
+          }, event.origin);
+          return;
+      }
+
+      console.log("Unhandled message type:", event.data.type);
+  });
+
+  // Element Selector functionality
+  let elementSelectorEnabled = false;
+  let elementSelectorStyles = null;
+  let currentHighlightedElement = null;
+
+  window.enableElementSelector = function() {
+      if (elementSelectorEnabled) return;
+
+      elementSelectorEnabled = true;
+      console.log('Element selector enabled');
+
+      // Inject styles for hover highlighting
+      elementSelectorStyles = document.createElement('style');
+      elementSelectorStyles.id = 'element-selector-styles';
+      elementSelectorStyles.textContent = `
+          .element-selector-highlight {
+              outline: 2px solid #4CAF50 !important;
+              outline-offset: 2px !important;
+              background-color: rgba(76, 175, 80, 0.1) !important;
+              cursor: crosshair !important;
+          }
+          .element-selector-active * {
+              cursor: crosshair !important;
+          }
+      `;
+      document.head.appendChild(elementSelectorStyles);
+
+      // Mark body as active
+      document.body.classList.add('element-selector-active');
+
+      // Add event listeners
+      document.addEventListener('mousemove', handleElementSelectorMouseMove, true);
+      document.addEventListener('click', handleElementSelectorClick, true);
+  };
+
+  window.disableElementSelector = function() {
+      if (!elementSelectorEnabled) return;
+
+      elementSelectorEnabled = false;
+      console.log('Element selector disabled');
+
+      // Remove styles
+      if (elementSelectorStyles) {
+          elementSelectorStyles.remove();
+          elementSelectorStyles = null;
+      }
+
+      // Remove body class
+      document.body.classList.remove('element-selector-active');
+
+      // Remove highlight from current element
+      if (currentHighlightedElement) {
+          currentHighlightedElement.classList.remove('element-selector-highlight');
+          currentHighlightedElement = null;
+      }
+
+      // Remove event listeners
+      document.removeEventListener('mousemove', handleElementSelectorMouseMove, true);
+      document.removeEventListener('click', handleElementSelectorClick, true);
+  };
+
+  function handleElementSelectorMouseMove(event) {
+      const target = event.target;
+
+      if (!target || target.tagName === 'HTML' || target.tagName === 'BODY') {
+          return;
+      }
+
+      // Remove highlight from previous element
+      if (currentHighlightedElement && currentHighlightedElement !== target) {
+          currentHighlightedElement.classList.remove('element-selector-highlight');
+      }
+
+      // Add highlight to current target
+      target.classList.add('element-selector-highlight');
+      currentHighlightedElement = target;
+  }
+
+  function handleElementSelectorClick(event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const target = event.target;
+
+      if (!target || target.tagName === 'HTML' || target.tagName === 'BODY') {
+          return;
+      }
+
+      // Extract text content for display
+      let textContent = extractElementText(target);
+
+      // Get the outerHTML for the LLM
+      let outerHTML = target.outerHTML;
+
+      // Send selected element data to parent
+      window.parent.postMessage({
+          source: 'element-selector',
+          type: 'element-selected',
+          text: textContent,
+          html: outerHTML
+      }, '*');
+
+      // Visual feedback
+      showSelectionFeedback(target);
+  }
+
+  function extractElementText(element) {
+      // Get text content and clean it up
+      let text = element.textContent || element.innerText || '';
+      text = text.trim();
+
+      // If text is too long, truncate it
+      if (text.length > 200) {
+          text = text.substring(0, 200) + '...';
+      }
+
+      // If element has no text, try to describe it
+      if (!text) {
+          const tagName = element.tagName.toLowerCase();
+          const className = element.className ? `.${element.className.split(' ')[0]}` : '';
+          const id = element.id ? `#${element.id}` : '';
+          text = `${tagName}${id}${className} element`;
+      }
+
+      return text;
+  }
+
+  function showSelectionFeedback(element) {
+      const originalOutline = element.style.outline;
+      const originalBackground = element.style.backgroundColor;
+
+      element.style.outline = '3px solid #4CAF50';
+      element.style.backgroundColor = 'rgba(76, 175, 80, 0.3)';
+
+      setTimeout(() => {
+          element.style.outline = originalOutline;
+          element.style.backgroundColor = originalBackground;
+      }, 300);
+  }
+
+  console.log("[page.html.erb] Leo iframe communication script loaded!");
+})();
+</script>
+</body></html>

@@ -1,7 +1,6 @@
 <?php
 
 require_once "../../auth/check_auth.php";
-require_once __DIR__ . "/../../includes/asset_functions.php";
 
 if (!isset($_SESSION['reports'])) {
     $_SESSION['reports'] = [];
@@ -9,13 +8,15 @@ if (!isset($_SESSION['reports'])) {
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
+    $reportType = $_POST['report_type'] ?? 'Asset Report';
+
     $_SESSION['reports'][] = [
-        'report_id' => $_POST['report_id'] ?? generateReportID(),
-        'report_name' => $_POST['report_name'],
-        'report_type' => $_POST['report_type'],
+        'report_id' => $_POST['report_id'] ?? ('RPT-' . str_pad(count($_SESSION['reports']) + 1, 6, '0', STR_PAD_LEFT)),
+        'report_name' => $reportType . ' - ' . date('Y-m-d'),
+        'report_type' => $reportType,
         'generated_by' => $_POST['generated_by'],
-        'date_generated' => $_POST['date_generated'],
-        'status' => $_POST['status']
+        'date_generated' => date('Y-m-d'),
+        'status' => 'Generated'
     ];
 
     header("Location: index.php");
@@ -31,18 +32,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <h2>Generate New Report</h2>
 
     <div class="form-row">
-        <label>Report Name</label>
-        <input type="text" name="report_name" required>
-    </div>
-
-    <div class="form-row">
         <label>Report Type</label>
-        <select name="report_type">
+        <select name="report_type" required>
             <option>Asset Report</option>
             <option>Inventory Report</option>
             <option>Maintenance Report</option>
             <option>Procurement Report</option>
             <option>Audit Report</option>
+            <option>Full System Report</option>
         </select>
     </div>
 
@@ -53,17 +50,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <div class="form-row">
         <label>Date Generated</label>
-        <input type="date" name="date_generated" required>
+        <input type="date" value="<?= date('Y-m-d') ?>" readonly>
     </div>
 
-    <div class="form-row">
-        <label>Status</label>
-        <select name="status">
-            <option>Generated</option>
-            <option>Pending</option>
-        </select>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Save Report</button>
+    <button type="submit" class="btn btn-primary">Generate Report</button>
 
 </form>

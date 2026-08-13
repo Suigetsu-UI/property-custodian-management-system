@@ -12,20 +12,41 @@ require_once __DIR__ . '/../config/config.php';
 
     <title>Property Custodian Management System</title>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/theme.css">
 
 </head>
 
 <body>
 
+<div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
 <header class="top-header">
 
-    <div class="system-title">
-        Property Custodian Management System
+    <div class="top-header-left">
+        <button type="button" class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="system-title">
+            Property Custodian Management System
+        </div>
     </div>
 
-    <div class="user-info">
-        Welcome, Administrator
+    <div class="top-header-right">
+        <div class="header-date">
+            <div class="header-date-label">Today</div>
+            <div class="header-date-value" id="headerDate"></div>
+        </div>
+        <?php
+        $headerUser = $_SESSION['user'] ?? [];
+        $headerRole = $headerUser['role'] ?? 'Administrator';
+        $headerInitial = strtoupper(substr($headerRole, 0, 1));
+        ?>
+        <div class="header-avatar" aria-hidden="true"><?= htmlspecialchars($headerInitial) ?></div>
+        <div class="user-info">
+            Welcome, <?= htmlspecialchars($headerRole) ?>
+        </div>
     </div>
 
 </header>

@@ -36,6 +36,18 @@ require_once "../../auth/check_auth.php";
 
 <?php endif; ?>
 
+<?php if (($_GET['error'] ?? '') === 'lost'): ?>
+
+<div class="error-message">
+
+    This asset is marked Lost and cannot be assigned or deleted until its audit status changes.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
 <?php if (($_GET['error'] ?? '') === 'maintenance'): ?>
 
 <div class="error-message">

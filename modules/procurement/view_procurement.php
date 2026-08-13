@@ -49,8 +49,33 @@ $procurement = $_SESSION['procurement'][$id] ?? null;
 </tr>
 
 <tr>
+    <th>Requested By</th>
+    <td><?= htmlspecialchars($procurement['requested_by'] ?? '') ?></td>
+</tr>
+
+<tr>
+    <th>Request Date</th>
+    <td><?= htmlspecialchars($procurement['request_date'] ?? '') ?></td>
+</tr>
+
+<tr>
     <th>Status</th>
     <td><?= htmlspecialchars($procurement['status']) ?></td>
+</tr>
+
+<tr>
+    <th>Approved By</th>
+    <td><?= !empty($procurement['approved_by']) ? htmlspecialchars($procurement['approved_by']) : 'Not Yet Approved' ?></td>
+</tr>
+
+<tr>
+    <th>Approval Date</th>
+    <td><?= !empty($procurement['approval_date']) ? htmlspecialchars($procurement['approval_date']) : 'Not Yet Approved' ?></td>
+</tr>
+
+<tr>
+    <th>Remarks</th>
+    <td><?= htmlspecialchars($procurement['remarks'] ?? '') ?></td>
 </tr>
 
 </table>

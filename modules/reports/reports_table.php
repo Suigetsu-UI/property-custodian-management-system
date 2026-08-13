@@ -38,13 +38,12 @@
             <td><?= htmlspecialchars($item['generated_by']); ?></td>
             <td><?= htmlspecialchars($item['date_generated']); ?></td>
             <td><?= htmlspecialchars($item['status']); ?></td>
-            <td>
+<td>
 
-                <a href="view_report.php?id=<?= $index ?>" class="btn btn-primary">View</a>
-                <a href="download_report.php?id=<?= $index ?>" class="btn btn-warning">Download</a>
-                <a href="delete_report.php?id=<?= $index ?>" class="btn btn-danger" onclick="return confirm('Delete this report?');">Delete</a>
+    <a href="view_report.php?id=<?= $index ?>" class="btn btn-primary">View</a>
+    <a href="download_report.php?id=<?= $index ?>" class="btn btn-warning">Download</a>
 
-            </td>
+</td>
 
         </tr>
 

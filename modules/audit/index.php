@@ -36,12 +36,13 @@ include "../../includes/header.php";
                     <option value="Completed" <?= (($_GET['status'] ?? '') === 'Completed') ? 'selected' : '' ?>>Completed</option>
                 </select>
 
-                <select id="resultFilter" name="result">
-                    <option value="">All Results</option>
-                    <option value="Passed" <?= (($_GET['result'] ?? '') === 'Passed') ? 'selected' : '' ?>>Passed</option>
-                    <option value="With Findings" <?= (($_GET['result'] ?? '') === 'With Findings') ? 'selected' : '' ?>>With Findings</option>
-                    <option value="Failed" <?= (($_GET['result'] ?? '') === 'Failed') ? 'selected' : '' ?>>Failed</option>
-                </select>
+<select id="resultFilter" name="result">
+    <option value="">All Results</option>
+    <option value="Verified" <?= (($_GET['result'] ?? '') === 'Verified') ? 'selected' : '' ?>>Verified</option>
+    <option value="Missing" <?= (($_GET['result'] ?? '') === 'Missing') ? 'selected' : '' ?>>Missing</option>
+    <option value="Damaged" <?= (($_GET['result'] ?? '') === 'Damaged') ? 'selected' : '' ?>>Damaged</option>
+    <option value="For Investigation" <?= (($_GET['result'] ?? '') === 'For Investigation') ? 'selected' : '' ?>>For Investigation</option>
+</select>
 
                 <button type="submit" class="btn btn-primary">
                     Search

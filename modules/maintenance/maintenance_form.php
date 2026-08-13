@@ -2,6 +2,7 @@
 require_once __DIR__ . "/../../includes/asset_functions.php";
 $form_action = isset($id) ? "edit_maintenance.php?id={$id}" : "save_maintenance.php";
 $default_maintenance_id = generateMaintenanceID();
+$linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '' ? getAssetByID($maintenance['asset_id']) : null;
 ?>
 <form class="asset-form" method="POST" action="<?= $form_action ?>">
 
@@ -29,7 +30,7 @@ $default_maintenance_id = generateMaintenanceID();
 
 <input
     type="text"
-    value="<?= htmlspecialchars((($maintenance['asset_id'] ?? '') . ' - ' . ($maintenance['asset_name'] ?? ''))) ?>"
+    value="<?= htmlspecialchars((($maintenance['asset_id'] ?? '') . ' - ' . ($linkedAsset['asset_name'] ?? $maintenance['asset_name'] ?? ''))) ?>"
     readonly
 >
 
@@ -50,6 +51,7 @@ $default_maintenance_id = generateMaintenanceID();
     data-name="<?= htmlspecialchars($asset['asset_name']) ?>"
     data-category="<?= htmlspecialchars($asset['category']) ?>"
     data-custodian="<?= htmlspecialchars($asset['custodian'] ?? '') ?>"
+    data-status="<?= htmlspecialchars($asset['status'] ?? 'Available') ?>"
 >
 <?= htmlspecialchars($asset['asset_id'] . ' - ' . $asset['asset_name']) ?>
 </option>
@@ -72,7 +74,7 @@ $default_maintenance_id = generateMaintenanceID();
     type="text"
     id="maintenanceAssetName"
     name="asset_name"
-    value="<?= htmlspecialchars($maintenance['asset_name'] ?? '') ?>"
+    value="<?= htmlspecialchars($linkedAsset['asset_name'] ?? ($maintenance['asset_name'] ?? '')) ?>"
     readonly
     placeholder="Auto-filled from Asset Registry"
 >
@@ -87,7 +89,7 @@ $default_maintenance_id = generateMaintenanceID();
     type="text"
     id="maintenanceCategory"
     name="category"
-    value="<?= htmlspecialchars($maintenance['category'] ?? '') ?>"
+    value="<?= htmlspecialchars($linkedAsset['category'] ?? ($maintenance['category'] ?? '')) ?>"
     readonly
     placeholder="Auto-filled from Asset Registry"
 >
@@ -101,9 +103,23 @@ $default_maintenance_id = generateMaintenanceID();
 <input
     type="text"
     id="maintenanceCustodian"
-    value="<?= htmlspecialchars($maintenance['custodian'] ?? '') ?>"
+    value="<?= htmlspecialchars($linkedAsset['custodian'] ?? ($maintenance['custodian'] ?? '')) ?>"
     readonly
     placeholder="Not Assigned"
+>
+
+</div>
+
+<div class="form-row">
+
+<label>Current Asset Status</label>
+
+<input
+    type="text"
+    id="maintenanceAssetStatus"
+    value="<?= htmlspecialchars($linkedAsset['status'] ?? '') ?>"
+    readonly
+    placeholder="Auto-filled from Asset Registry"
 >
 
 </div>

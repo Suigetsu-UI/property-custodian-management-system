@@ -60,6 +60,10 @@ $assets = $_SESSION['assets'] ?? [];
 
 <span>Locked — Under Maintenance</span>
 
+<?php elseif ($status === 'Lost'): ?>
+
+<span>Locked — Marked Lost (Pending Audit Resolution)</span>
+
 <?php elseif ($status === 'Assigned'): ?>
 
 <a href="return_asset.php?id=<?= $index ?>"

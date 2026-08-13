@@ -72,16 +72,70 @@
 
     <div class="form-row">
 
+        <label>Requested By</label>
+
+        <input
+            type="text"
+            name="requested_by"
+            value="<?= htmlspecialchars($procurement['requested_by'] ?? '') ?>"
+            required>
+
+    </div>
+
+    <div class="form-row">
+
+        <label>Request Date</label>
+
+        <input
+            type="date"
+            name="request_date"
+            value="<?= htmlspecialchars($procurement['request_date'] ?? '') ?>"
+            required>
+
+    </div>
+
+    <div class="form-row">
+
         <label>Status</label>
 
         <select name="status">
 
             <option <?= (($procurement['status'] ?? '') == 'Pending') ? 'selected' : '' ?>>Pending</option>
             <option <?= (($procurement['status'] ?? '') == 'Approved') ? 'selected' : '' ?>>Approved</option>
-            <option <?= (($procurement['status'] ?? '') == 'Ordered') ? 'selected' : '' ?>>Ordered</option>
+            <option <?= (($procurement['status'] ?? '') == 'Rejected') ? 'selected' : '' ?>>Rejected</option>
             <option <?= (($procurement['status'] ?? '') == 'Delivered') ? 'selected' : '' ?>>Delivered</option>
 
         </select>
+
+    </div>
+
+    <div class="form-row">
+
+        <label>Approved By</label>
+
+        <input
+            type="text"
+            name="approved_by"
+            value="<?= htmlspecialchars($procurement['approved_by'] ?? '') ?>">
+
+    </div>
+
+    <div class="form-row">
+
+        <label>Approval Date</label>
+
+        <input
+            type="date"
+            name="approval_date"
+            value="<?= htmlspecialchars($procurement['approval_date'] ?? '') ?>">
+
+    </div>
+
+    <div class="form-row">
+
+        <label>Remarks</label>
+
+        <textarea name="remarks"><?= htmlspecialchars($procurement['remarks'] ?? '') ?></textarea>
 
     </div>
 

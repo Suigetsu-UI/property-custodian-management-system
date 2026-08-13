@@ -18,6 +18,18 @@ include "../../includes/header.php";
 
         <br>
 
+        <?php if (($_GET['error'] ?? '') === 'delivered'): ?>
+
+        <div class="error-message">
+
+            This procurement record has already updated Inventory and cannot be deleted. Adjust the linked Inventory item manually if a reversal is required.
+
+        </div>
+
+        <br>
+
+        <?php endif; ?>
+
         <div class="search-toolbar">
 
             <input
@@ -30,7 +42,7 @@ include "../../includes/header.php";
                 <option value="">All Status</option>
                 <option>Pending</option>
                 <option>Approved</option>
-                <option>Ordered</option>
+                <option>Rejected</option>
                 <option>Delivered</option>
             </select>
 

@@ -19,6 +19,11 @@ if (($_SESSION['assets'][$id]['status'] ?? 'Available') === 'Under Maintenance')
     exit();
 }
 
+if (($_SESSION['assets'][$id]['status'] ?? 'Available') === 'Lost') {
+    header("Location:index.php?error=lost");
+    exit();
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $employeeId = trim($_POST['employee_id'] ?? '');

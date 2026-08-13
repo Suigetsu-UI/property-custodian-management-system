@@ -13,6 +13,7 @@ foreach ($_SESSION['audits'] ?? [] as $item) {
     $matchKeyword =
         $keyword === '' ||
         strpos(strtolower($item['audit_id']), $keyword) !== false ||
+        strpos(strtolower($item['asset_id'] ?? ''), $keyword) !== false ||
         strpos(strtolower($item['asset_name']), $keyword) !== false ||
         strpos(strtolower($item['auditor']), $keyword) !== false ||
         strpos(strtolower($item['status']), $keyword) !== false ||

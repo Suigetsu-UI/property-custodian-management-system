@@ -24,13 +24,13 @@
 
 <?php
 
-$maintenance = $_SESSION['filtered_maintenance']
+$maintenanceRecords = $_SESSION['filtered_maintenance']
     ?? $_SESSION['maintenance']
     ?? [];
 
 unset($_SESSION['filtered_maintenance']);
 
-foreach ($maintenance as $index => $item):
+foreach ($maintenanceRecords as $index => $item):
 
 ?>
 
@@ -68,7 +68,7 @@ Delete
 
 <?php endforeach; ?>
 
-<?php if (empty($maintenance)): ?>
+<?php if (empty($maintenanceRecords)): ?>
 
 <tr>
 

@@ -64,12 +64,14 @@ const maintenanceAssetSelect = document.getElementById("maintenanceAssetSelect")
 const maintenanceAssetName = document.getElementById("maintenanceAssetName");
 const maintenanceCategory = document.getElementById("maintenanceCategory");
 const maintenanceCustodian = document.getElementById("maintenanceCustodian");
+const maintenanceAssetStatus = document.getElementById("maintenanceAssetStatus");
 
-if (maintenanceAssetSelect && maintenanceAssetName && maintenanceCategory && maintenanceCustodian) {
+if (maintenanceAssetSelect && maintenanceAssetName && maintenanceCategory && maintenanceCustodian && maintenanceAssetStatus) {
     maintenanceAssetSelect.addEventListener("change", function () {
         const selectedOption = maintenanceAssetSelect.options[maintenanceAssetSelect.selectedIndex];
         maintenanceAssetName.value = selectedOption ? (selectedOption.getAttribute("data-name") || "") : "";
         maintenanceCategory.value = selectedOption ? (selectedOption.getAttribute("data-category") || "") : "";
         maintenanceCustodian.value = selectedOption ? (selectedOption.getAttribute("data-custodian") || "") : "";
+        maintenanceAssetStatus.value = selectedOption ? (selectedOption.getAttribute("data-status") || "") : "";
     });
 }

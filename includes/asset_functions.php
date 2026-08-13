@@ -184,3 +184,122 @@ function hasActiveMaintenance($assetId)
 
     return false;
 }
+
+
+function updateAssetStatusFromAudit($assetId, $auditResult)
+{
+    if (empty($assetId)) {
+        return;
+    }
+
+    // Respect Maintenance module ownership of "Under Maintenance"
+    if (hasActiveMaintenance($assetId) && in_array($auditResult, ['Verified', 'For Investigation'], true)) {
+        return;
+    }
+
+    foreach ($_SESSION['assets'] as $index => $asset) {
+        if (isset($asset['asset_id']) && $asset['asset_id'] === $assetId) {
+
+            switch ($auditResult) {
+
+                case 'Missing':
+                    $_SESSION['assets'][$index]['status'] = 'Lost';
+                    break;
+
+                case 'Damaged':
+                    $_SESSION['assets'][$index]['status'] = 'Under Maintenance';
+                    break;
+
+                case 'Verified':
+                    $_SESSION['assets'][$index]['status'] =
+                        !empty($asset['custodian']) ? 'Assigned' : 'Available';
+                    break;
+
+                case 'For Investigation':
+                default:
+                    // Keep current status unchanged
+                    break;
+            }
+
+            return;
+        }
+    }
+}
+
+function syncAssetStatusAfterAuditRemoval($assetId)
+{
+    if (empty($assetId)) {
+        return;
+    }
+
+    // Maintenance module still owns "Under Maintenance" if it's active
+    if (hasActiveMaintenance($assetId)) {
+        return;
+    }
+
+    $remainingResult = null;
+
+    foreach ($_SESSION['audits'] ?? [] as $audit) {
+        if (isset($audit['asset_id']) && $audit['asset_id'] === $assetId) {
+            $remainingResult = $audit['result'] ?? $remainingResult;
+        }
+    }
+
+    if ($remainingResult === 'Missing') {
+        updateAssetStatusFromAudit($assetId, 'Missing');
+        return;
+    }
+
+    if ($remainingResult === 'Damaged') {
+        updateAssetStatusFromAudit($assetId, 'Damaged');
+        return;
+    }
+
+    // No remaining Missing/Damaged findings — restore by custodian
+    updateAssetStatusFromAudit($assetId, 'Verified');
+}
+
+function findInventoryIndexByNameCategory($assetName, $category)
+{
+    foreach ($_SESSION['inventory'] ?? [] as $index => $item) {
+        if (
+            isset($item['asset_name'], $item['category']) &&
+            strcasecmp($item['asset_name'], $assetName) === 0 &&
+            strcasecmp($item['category'], $category) === 0
+        ) {
+            return $index;
+        }
+    }
+
+    return null;
+}
+
+function adjustInventoryStock($assetName, $category, $quantityDelta)
+{
+    if ((int) $quantityDelta === 0) {
+        return;
+    }
+
+    if (!isset($_SESSION['inventory'])) {
+        $_SESSION['inventory'] = [];
+    }
+
+    $index = findInventoryIndexByNameCategory($assetName, $category);
+
+    if ($index !== null) {
+
+        $currentQty = (int) ($_SESSION['inventory'][$index]['quantity'] ?? 0);
+        $_SESSION['inventory'][$index]['quantity'] = max(0, $currentQty + $quantityDelta);
+
+    } elseif ($quantityDelta > 0) {
+
+        $_SESSION['inventory'][] = [
+            'inventory_id' => generateInventoryID(),
+            'asset_name' => $assetName,
+            'category' => $category,
+            'quantity' => $quantityDelta,
+            'condition' => 'Good'
+        ];
+
+    }
+}
