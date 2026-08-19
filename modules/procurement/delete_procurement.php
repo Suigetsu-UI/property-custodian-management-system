@@ -1,24 +1,57 @@
 <?php
 
 require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/database.php";
 
-$id = $_GET['id'] ?? null;
+$id = isset($_GET['id']) ? (int) $_GET['id'] : null;
 
-if ($id !== null && isset($_SESSION['procurement'][$id])) {
+if ($id !== null) {
+    $pdo = getDbConnection();
 
-    $deliveredQuantity = (int) ($_SESSION['procurement'][$id]['delivered_quantity'] ?? 0);
+    try {
+        $pdo->beginTransaction();
 
-    if ($deliveredQuantity > 0) {
+        $stmt = $pdo->prepare(
+            "SELECT delivered_quantity
+             FROM procurement
+             WHERE id = :id
+             FOR UPDATE"
+        );
 
-        header("Location: index.php?error=delivered");
+        $stmt->execute([
+            'id' => $id,
+        ]);
+
+        $row = $stmt->fetch();
+
+        if ($row) {
+            if ((int) $row['delivered_quantity'] > 0) {
+                $pdo->rollBack();
+
+                header("Location: index.php?error=delivered");
+                exit;
+            }
+
+            $delete = $pdo->prepare(
+                "DELETE FROM procurement
+                 WHERE id = :id"
+            );
+
+            $delete->execute([
+                'id' => $id,
+            ]);
+        }
+
+        $pdo->commit();
+
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        header("Location: index.php?error=save_failed");
         exit;
-
     }
-
-    unset($_SESSION['procurement'][$id]);
-
-    $_SESSION['procurement'] = array_values($_SESSION['procurement']);
-
 }
 
 header("Location: index.php");

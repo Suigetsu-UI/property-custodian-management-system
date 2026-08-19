@@ -6,14 +6,49 @@ const statusFilter = document.getElementById("statusFilter");
 const supplierFilter = document.getElementById("supplierFilter");
 
 if (openProcurementModal) {
-    openProcurementModal.onclick = function () {
+    openProcurementModal.onclick = async function () {
         const idField = document.getElementById("procurementID");
-        if (idField) {
-            idField.value = "PRC-" + String(Math.floor(Math.random() * 999999) + 1).padStart(6, "0");
+
+        if (!idField || !procurementModal) {
+            return;
         }
 
-        if (procurementModal) {
+        /*
+         * Never reuse an ID left in the field from an earlier abandoned
+         * Add attempt. Each new Add initiation requests a fresh sequence
+         * value from the server.
+         */
+        idField.value = "";
+        openProcurementModal.disabled = true;
+
+        try {
+            const response = await fetch("next_procurement_id.php", {
+                method: "POST",
+                cache: "no-store"
+            });
+
+            if (!response.ok) {
+                throw new Error("Could not generate Procurement ID.");
+            }
+
+            const data = await response.json();
+
+            if (
+                !data ||
+                typeof data.procurement_id !== "string" ||
+                data.procurement_id === ""
+            ) {
+                throw new Error("Invalid Procurement ID response.");
+            }
+
+            idField.value = data.procurement_id;
             procurementModal.style.display = "block";
+
+        } catch (error) {
+            alert("Could not generate a Procurement ID. Please try again.");
+
+        } finally {
+            openProcurementModal.disabled = false;
         }
     };
 }

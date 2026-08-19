@@ -1,3 +1,24 @@
+<?php
+
+require_once __DIR__ . "/../../includes/database.php";
+
+/*
+|--------------------------------------------------------------------------
+| Procurement list
+|--------------------------------------------------------------------------
+| Procurement business data now comes directly from PostgreSQL.
+|
+| Use a dedicated list variable so it cannot collide with $procurement,
+| which is reserved for the single-record Edit/View context.
+*/
+$pdo = getDbConnection();
+
+$procurementRows = $pdo
+    ->query("SELECT * FROM procurement ORDER BY id ASC")
+    ->fetchAll();
+
+?>
+
 <table class="asset-table" id="procurementTable">
 
 <thead>
@@ -18,17 +39,7 @@
 
 <tbody>
 
-<?php
-
-$procurement = $_SESSION['filtered_procurement']
-    ?? $_SESSION['procurement']
-    ?? [];
-
-unset($_SESSION['filtered_procurement']);
-
-foreach ($procurement as $index => $item):
-
-?>
+<?php foreach ($procurementRows as $item): ?>
 
 <tr class="procurement-row">
 
@@ -38,7 +49,7 @@ foreach ($procurement as $index => $item):
 
 <td><?= htmlspecialchars($item['category']); ?></td>
 
-<td><?= htmlspecialchars($item['quantity']); ?></td>
+<td><?= htmlspecialchars((string) $item['quantity']); ?></td>
 
 <td><?= htmlspecialchars($item['supplier']); ?></td>
 
@@ -46,15 +57,15 @@ foreach ($procurement as $index => $item):
 
 <td>
 
-<a href="view_procurement.php?id=<?= $index ?>" class="btn btn-primary">
+<a href="view_procurement.php?id=<?= (int) $item['id'] ?>" class="btn btn-primary">
 View
 </a>
 
-<a href="edit_procurement.php?id=<?= $index ?>" class="btn btn-warning">
+<a href="edit_procurement.php?id=<?= (int) $item['id'] ?>" class="btn btn-warning">
 Edit
 </a>
 
-<a href="delete_procurement.php?id=<?= $index ?>"
+<a href="delete_procurement.php?id=<?= (int) $item['id'] ?>"
 class="btn btn-danger"
 onclick="return confirm('Delete this procurement record?');">
 Delete
@@ -66,7 +77,7 @@ Delete
 
 <?php endforeach; ?>
 
-<?php if (empty($procurement)): ?>
+<?php if (empty($procurementRows)): ?>
 
 <tr>
 

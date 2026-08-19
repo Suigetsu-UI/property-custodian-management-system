@@ -1,16 +1,33 @@
 <?php
 
 require_once "../../auth/check_auth.php";
-include "../../includes/header.php";
+require_once __DIR__ . "/../../includes/database.php";
 
 $id = isset($_GET['id']) ? (int) $_GET['id'] : null;
 
-if ($id === null || !isset($_SESSION['procurement'][$id])) {
+$pdo = getDbConnection();
+$procurement = null;
+
+if ($id !== null) {
+    $stmt = $pdo->prepare(
+        "SELECT *
+         FROM procurement
+         WHERE id = :id"
+    );
+
+    $stmt->execute([
+        'id' => $id,
+    ]);
+
+    $procurement = $stmt->fetch() ?: null;
+}
+
+if (!$procurement) {
     header("Location: index.php");
     exit;
 }
 
-$procurement = $_SESSION['procurement'][$id];
+include "../../includes/header.php";
 
 ?>
 

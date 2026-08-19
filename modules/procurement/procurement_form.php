@@ -1,4 +1,15 @@
-<?php require_once __DIR__ . "/../../includes/asset_functions.php"; $default_procurement_id = generateProcurementID(); ?>
+<?php
+/*
+|--------------------------------------------------------------------------
+| Procurement form
+|--------------------------------------------------------------------------
+| In Add mode the Procurement ID starts empty.
+| procurement.js requests a PostgreSQL sequence-backed ID only when the
+| user actually initiates Add Procurement.
+|
+| In Edit mode the existing database-backed procurement_id is displayed.
+*/
+?>
 <form class="asset-form" method="POST" action="save_procurement.php">
 
     <h2><?= isset($procurement) ? "Edit Procurement" : "Add Procurement" ?></h2>
@@ -13,7 +24,7 @@
             type="text"
             id="procurementID"
             name="procurement_id"
-            value="<?= htmlspecialchars($procurement['procurement_id'] ?? $default_procurement_id) ?>"
+            value="<?= htmlspecialchars($procurement['procurement_id'] ?? '') ?>"
             readonly>
 
     </div>

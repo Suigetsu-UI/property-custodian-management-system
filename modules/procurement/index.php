@@ -30,6 +30,66 @@ include "../../includes/header.php";
 
         <?php endif; ?>
 
+        <?php if (($_GET['error'] ?? '') === 'invalid_status'): ?>
+
+<div class="error-message">
+
+    That status change is not allowed for this procurement record.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
+<?php if (($_GET['error'] ?? '') === 'inventory_negative'): ?>
+
+<div class="error-message">
+
+    This change would reduce Inventory below zero. No changes were made.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
+<?php if (($_GET['error'] ?? '') === 'invalid_id'): ?>
+
+<div class="error-message">
+
+    The Procurement ID is invalid or was not issued for this session. Please reopen "Add Procurement" and try again.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
+<?php if (($_GET['error'] ?? '') === 'duplicate_id'): ?>
+
+<div class="error-message">
+
+    This Procurement ID has already been used. Please reopen "Add Procurement" if you intended to create a new record.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
+<?php if (($_GET['error'] ?? '') === 'save_failed'): ?>
+
+<div class="error-message">
+
+    The procurement record could not be saved. Please try again.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
         <div class="search-toolbar">
 
             <input

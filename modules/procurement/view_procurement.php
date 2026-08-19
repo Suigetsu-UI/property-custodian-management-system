@@ -1,11 +1,28 @@
 <?php
 
 require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/database.php";
+
+$id = isset($_GET['id']) ? (int) $_GET['id'] : null;
+
+$pdo = getDbConnection();
+$procurement = null;
+
+if ($id !== null) {
+    $stmt = $pdo->prepare(
+        "SELECT *
+         FROM procurement
+         WHERE id = :id"
+    );
+
+    $stmt->execute([
+        'id' => $id,
+    ]);
+
+    $procurement = $stmt->fetch() ?: null;
+}
+
 include "../../includes/header.php";
-
-$id = $_GET['id'] ?? null;
-
-$procurement = $_SESSION['procurement'][$id] ?? null;
 
 ?>
 
@@ -40,7 +57,7 @@ $procurement = $_SESSION['procurement'][$id] ?? null;
 
 <tr>
     <th>Quantity</th>
-    <td><?= htmlspecialchars($procurement['quantity']) ?></td>
+    <td><?= htmlspecialchars((string) $procurement['quantity']) ?></td>
 </tr>
 
 <tr>
@@ -83,9 +100,7 @@ $procurement = $_SESSION['procurement'][$id] ?? null;
 <br>
 
 <a href="index.php" class="btn btn-primary">
-
 Back to Procurement
-
 </a>
 
 <?php else: ?>
@@ -93,9 +108,7 @@ Back to Procurement
 <p>Procurement record not found.</p>
 
 <a href="index.php" class="btn btn-primary">
-
 Back
-
 </a>
 
 <?php endif; ?>
