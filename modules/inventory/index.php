@@ -180,17 +180,7 @@ The Inventory record could not be saved. Please check the entered values and try
 
 <?php include "inventory_table.php"; ?>
 
-<div id="inventoryModal" class="modal">
-
-<div class="modal-content">
-
-<span class="close-modal">&times;</span>
-
-<?php include "inventory_form.php"; ?>
-
-</div>
-
-</div>
+<?php include "inventory_modals.php"; ?>
 
 </div>
 

@@ -122,6 +122,8 @@ The Asset record could not be saved. Please check the entered values and try aga
 
 <?php include "asset_form.php"; ?>
 
+<?php include "asset_action_modals.php"; ?>
+
 </div>
 
 </div>

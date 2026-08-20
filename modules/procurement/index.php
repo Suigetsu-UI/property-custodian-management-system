@@ -123,12 +123,7 @@ include "../../includes/header.php";
 
         <?php include "procurement_table.php"; ?>
 
-        <div id="procurementModal" class="modal">
-            <div class="modal-content">
-                <span class="close-modal">&times;</span>
-                <?php include "procurement_form.php"; ?>
-            </div>
-        </div>
+        <?php include "procurement_modals.php"; ?>
 
     </div>
 

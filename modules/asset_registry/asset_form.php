@@ -20,55 +20,66 @@ $availableInventoryRows = $inventoryStmt->fetchAll();
 
 ?>
 
-<div id="assetModal" class="modal">
+<div
+    id="assetModal"
+    class="modal pcms-modal pcms-modal--lg"
+    role="dialog"
+    aria-modal="true"
+    aria-hidden="true"
+    aria-labelledby="registerAssetTitle"
+>
 
-<div class="modal-content">
-
-<span class="close-modal">&times;</span>
+<div class="modal-content pcms-modal-dialog">
 
 <form
-    class="asset-form"
+    class="pcms-modal-form"
     method="POST"
     action="register_asset.php"
 >
 
-<h2>Register New Asset</h2>
+<header class="pcms-modal-header">
+
+<div>
+    <span class="pcms-modal-eyebrow">Asset Registry</span>
+    <h2 id="registerAssetTitle">Register New Asset</h2>
+    <p>Create a tagged property record from available inventory.</p>
+</div>
+
+<button
+    type="button"
+    class="close-modal"
+    data-modal-close
+    aria-label="Close Register Asset"
+>
+    <span aria-hidden="true">&times;</span>
+</button>
+
+</header>
+
+<div class="pcms-modal-body">
+
+<div class="pcms-form-grid">
 
 <div class="form-row">
-
-<label>Asset ID</label>
-
-<input
-    type="text"
-    id="assetID"
-    name="asset_id"
-    value=""
-    readonly
->
-
+    <label for="assetID">Asset ID</label>
+    <input type="text" id="assetID" name="asset_id" value="" readonly>
 </div>
 
 <div class="form-row">
-
-<label>QR Code</label>
-
-<input
-    type="text"
-    value="Automatically Generated After Saving"
-    readonly
->
-
+    <label for="assetQrPreview">QR Code</label>
+    <input
+        type="text"
+        id="assetQrPreview"
+        value="Automatically Generated After Saving"
+        readonly
+    >
 </div>
 
-<div class="form-row">
+<div class="form-row pcms-form-span-2">
 
-<label>Select Inventory Item</label>
+<label for="inventoryItemSelect">Select Inventory Item</label>
 
-<select
-    name="inventory_id"
-    id="inventoryItemSelect"
-    required
->
+<select name="inventory_id" id="inventoryItemSelect" required>
 
 <option value="">Select Inventory Item</option>
 
@@ -96,126 +107,94 @@ $availableInventoryRows = $inventoryStmt->fetchAll();
 </div>
 
 <div class="form-row">
-
-<label>Asset Name</label>
-
-<input
-    type="text"
-    id="assetNameField"
-    name="asset_name"
-    readonly
-    placeholder="Auto-filled from Inventory"
->
-
+    <label for="assetNameField">Asset Name</label>
+    <input
+        type="text"
+        id="assetNameField"
+        name="asset_name"
+        readonly
+        placeholder="Auto-filled from Inventory"
+    >
 </div>
 
 <div class="form-row">
-
-<label>Category</label>
-
-<input
-    type="text"
-    id="assetCategoryField"
-    name="category"
-    readonly
-    placeholder="Auto-filled from Inventory"
->
-
+    <label for="assetCategoryField">Category</label>
+    <input
+        type="text"
+        id="assetCategoryField"
+        name="category"
+        readonly
+        placeholder="Auto-filled from Inventory"
+    >
 </div>
 
 <div class="form-row">
-
-<label>Brand</label>
-
-<input
-    type="text"
-    name="brand"
->
-
+    <label for="registerAssetBrand">Brand</label>
+    <input type="text" id="registerAssetBrand" name="brand">
 </div>
 
 <div class="form-row">
-
-<label>Model</label>
-
-<input
-    type="text"
-    name="model"
->
-
+    <label for="registerAssetModel">Model</label>
+    <input type="text" id="registerAssetModel" name="model">
 </div>
 
 <div class="form-row">
-
-<label>Serial Number</label>
-
-<input
-    type="text"
-    name="serial_number"
->
-
+    <label for="registerAssetSerial">Serial Number</label>
+    <input type="text" id="registerAssetSerial" name="serial_number">
 </div>
 
 <div class="form-row">
-
-<label>Acquisition Date</label>
-
-<input
-    type="date"
-    id="acquisitionDate"
-    name="acquisition_date"
-    required
->
-
+    <label for="acquisitionDate">Acquisition Date</label>
+    <input
+        type="date"
+        id="acquisitionDate"
+        name="acquisition_date"
+        required
+    >
 </div>
 
 <div class="form-row">
-
-<label>Purchase Cost</label>
-
-<input
-    type="number"
-    step="0.01"
-    min="0"
-    name="purchase_cost"
-    required
->
-
+    <label for="registerAssetCost">Purchase Cost</label>
+    <input
+        type="number"
+        id="registerAssetCost"
+        step="0.01"
+        min="0"
+        name="purchase_cost"
+        required
+    >
 </div>
 
 <div class="form-row">
+    <label for="registerAssetSupplier">Supplier</label>
+    <input type="text" id="registerAssetSupplier" name="supplier">
+</div>
 
-<label>Supplier</label>
+<div class="form-row pcms-form-span-2">
+    <label for="registerAssetLocation">Location</label>
+    <input type="text" id="registerAssetLocation" name="location">
+</div>
 
-<input
-    type="text"
-    name="supplier"
->
+<div class="form-row pcms-form-span-2">
+    <label for="registerAssetRemarks">Remarks</label>
+    <textarea id="registerAssetRemarks" name="remarks" rows="3"></textarea>
+</div>
 
 </div>
 
-<div class="form-row">
-
-<label>Location</label>
-
-<input
-    type="text"
-    name="location"
->
-
 </div>
 
-<div class="form-row">
+<footer class="pcms-modal-footer">
 
-<label>Remarks</label>
+<button type="button" class="btn btn-outline" data-modal-close>
+    Cancel
+</button>
 
-<textarea name="remarks"></textarea>
-
-</div>
-
-<button type="submit">
+<button type="submit" class="btn btn-primary">
     Save Asset
 </button>
+
+</footer>
 
 </form>
 

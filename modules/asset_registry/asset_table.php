@@ -10,7 +10,18 @@ $stmt = $pdo->query(
         asset_id,
         asset_name,
         category,
+        brand,
+        model,
+        serial_number,
+        acquisition_date,
+        purchase_cost,
+        supplier,
+        location,
+        remarks,
+        employee_id,
         custodian,
+        department,
+        date_assigned,
         status
      FROM assets
      ORDER BY id ASC"
@@ -43,7 +54,27 @@ $assetRows = $stmt->fetchAll();
 
 <?php $status = $asset['status'] ?? 'Available'; ?>
 
-<tr class="asset-row">
+<?php
+
+$assetPayload = htmlspecialchars(
+    json_encode(
+        $asset,
+        JSON_HEX_TAG |
+        JSON_HEX_AMP |
+        JSON_HEX_APOS |
+        JSON_HEX_QUOT |
+        JSON_INVALID_UTF8_SUBSTITUTE
+    ),
+    ENT_QUOTES,
+    'UTF-8'
+);
+
+?>
+
+<tr
+    class="asset-row"
+    data-asset="<?= $assetPayload ?>"
+>
 
 <td><?= htmlspecialchars($asset['asset_id']) ?></td>
 
@@ -68,6 +99,7 @@ $assetRows = $stmt->fetchAll();
 <a
     href="view_asset.php?id=<?= (int) $asset['id'] ?>"
     class="btn btn-primary"
+    data-asset-action="view"
 >
     View
 </a>
@@ -75,6 +107,7 @@ $assetRows = $stmt->fetchAll();
 <a
     href="edit_asset.php?id=<?= (int) $asset['id'] ?>"
     class="btn btn-warning"
+    data-asset-action="edit"
 >
     Edit
 </a>
@@ -110,6 +143,7 @@ $assetRows = $stmt->fetchAll();
 <a
     href="assign_custodian.php?id=<?= (int) $asset['id'] ?>"
     class="btn btn-success"
+    data-asset-action="assign"
 >
     Assign
 </a>

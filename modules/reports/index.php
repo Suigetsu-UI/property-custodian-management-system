@@ -92,20 +92,7 @@ Generate Report
 
 <?php include "reports_table.php"; ?>
 
-<div
-    id="reportModal"
-    class="modal"
->
-
-<div class="modal-content">
-
-<span class="close-modal">&times;</span>
-
-<?php include "generate_report.php"; ?>
-
-</div>
-
-</div>
+<?php include "report_modals.php"; ?>
 
 </div>
 

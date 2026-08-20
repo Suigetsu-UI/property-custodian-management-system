@@ -15,14 +15,12 @@ $resultParam =
 
 $sql =
     "SELECT
-        au.id,
-        au.audit_id,
-        au.asset_name_snap,
-        au.auditor,
-        au.audit_date,
-        au.status,
-        au.result,
-        a.asset_id AS asset_business_id
+        au.*,
+        a.asset_id AS asset_business_id,
+        a.asset_name AS current_asset_name,
+        a.category AS current_category,
+        a.custodian AS current_custodian,
+        a.status AS current_asset_status
      FROM audits au
      JOIN assets a
        ON a.id = au.asset_id
@@ -119,7 +117,15 @@ $auditRows =
 
 <?php foreach ($auditRows as $item): ?>
 
-<tr class="audit-row">
+<?php
+$auditPayload = htmlspecialchars(
+    json_encode($item, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE),
+    ENT_QUOTES,
+    'UTF-8'
+);
+?>
+
+<tr class="audit-row" data-record="<?= $auditPayload ?>">
 
 <td>
 <?= htmlspecialchars($item['audit_id']) ?>
@@ -150,6 +156,7 @@ $auditRows =
 <a
     href="view_audit.php?id=<?= (int) $item['id'] ?>"
     class="btn btn-primary"
+    data-audit-action="view"
 >
 View
 </a>
@@ -157,6 +164,7 @@ View
 <a
     href="edit_audit.php?id=<?= (int) $item['id'] ?>"
     class="btn btn-warning"
+    data-audit-action="edit"
 >
 Edit
 </a>

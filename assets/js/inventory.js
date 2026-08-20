@@ -1,154 +1,112 @@
-const inventoryModal = document.getElementById("inventoryModal");
-const openInventoryModal = document.getElementById("openInventoryModal");
-const closeInventoryModal = document.querySelector(
-    "#inventoryModal .close-modal"
-);
+(function () {
+    'use strict';
 
-const searchInput = document.getElementById("searchInput");
-const categoryFilter = document.getElementById("categoryFilter");
-const conditionFilter = document.getElementById("conditionFilter");
+    var modal = window.PCMSModal;
+    var addModal = document.getElementById('inventoryModal');
+    var viewModal = document.getElementById('viewInventoryModal');
+    var editModal = document.getElementById('editInventoryModal');
+    var addForm = document.getElementById('addInventoryForm');
+    var editForm = document.getElementById('editInventoryForm');
+    var addButton = document.getElementById('openInventoryModal');
+    var editFromView = document.getElementById('editInventoryFromView');
+    var currentRecord = null;
 
-if (openInventoryModal) {
-    openInventoryModal.onclick = async function () {
-        const idField = document.getElementById("inventoryID");
-
-        /*
-         * Never reuse an abandoned Add ID.
-         * Each Add initiation receives a fresh sequence value.
-         */
-        if (idField) {
-            idField.value = "";
-        }
-
-        openInventoryModal.disabled = true;
-
-        try {
-            const response = await fetch(
-                "next_inventory_id.php",
-                {
-                    method: "POST",
-                    cache: "no-store"
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(
-                    "Could not generate Inventory ID."
-                );
-            }
-
-            const data = await response.json();
-
-            if (
-                !data ||
-                typeof data.inventory_id !== "string" ||
-                data.inventory_id === ""
-            ) {
-                throw new Error(
-                    "Invalid Inventory ID response."
-                );
-            }
-
-            if (idField) {
-                idField.value = data.inventory_id;
-            }
-
-            if (inventoryModal) {
-                inventoryModal.style.display = "block";
-            }
-
-        } catch (error) {
-            alert(
-                "Could not generate an Inventory ID. Please try again."
-            );
-
-        } finally {
-            openInventoryModal.disabled = false;
-        }
-    };
-}
-
-if (closeInventoryModal) {
-    closeInventoryModal.onclick = function () {
-        if (inventoryModal) {
-            inventoryModal.style.display = "none";
-        }
-    };
-}
-
-window.onclick = function (event) {
-    if (event.target === inventoryModal) {
-        inventoryModal.style.display = "none";
+    function populateView(record) {
+        viewModal.querySelectorAll('[data-inventory-view]').forEach(function (field) {
+            field.textContent = modal.value(record[field.dataset.inventoryView]);
+        });
+        document.getElementById('viewInventorySubtitle').textContent = [
+            record.inventory_id,
+            record.asset_name
+        ].filter(Boolean).join(' — ');
     }
-};
 
-function applyInventoryFilters() {
-    const search =
-        (searchInput?.value || "").toLowerCase();
+    function populateEdit(record) {
+        document.getElementById('editInventoryRowID').value = record.id || '';
+        document.getElementById('editInventoryID').value = record.inventory_id || '';
+        document.getElementById('editInventoryName').value = record.asset_name || '';
+        document.getElementById('editInventoryQuantity').value = record.quantity ?? 0;
+        modal.setSelectValue(document.getElementById('editInventoryCategory'), record.category);
+        modal.setSelectValue(document.getElementById('editInventoryCondition'), record.condition);
+    }
 
-    const category =
-        (categoryFilter?.value || "").toLowerCase();
+    document.querySelectorAll('[data-inventory-action]').forEach(function (trigger) {
+        trigger.addEventListener('click', function (event) {
+            var record = modal.readRowData(trigger);
+            if (!record) return;
 
-    const condition =
-        (conditionFilter?.value || "").toLowerCase();
-
-    const rows = document.querySelectorAll(
-        "#inventoryTable tbody tr.inventory-row"
-    );
-
-    rows.forEach(function (row) {
-        const inventoryID =
-            row.cells[0].textContent.toLowerCase();
-
-        const assetName =
-            row.cells[1].textContent.toLowerCase();
-
-        const assetCategory =
-            row.cells[2].textContent.toLowerCase();
-
-        const assetCondition =
-            row.cells[4].textContent.toLowerCase();
-
-        const matchesSearch =
-            inventoryID.includes(search) ||
-            assetName.includes(search);
-
-        const matchesCategory =
-            category === "" ||
-            assetCategory === category;
-
-        const matchesCondition =
-            condition === "" ||
-            assetCondition === condition;
-
-        row.style.display =
-            (
-                matchesSearch &&
-                matchesCategory &&
-                matchesCondition
-            )
-                ? ""
-                : "none";
+            if (trigger.dataset.inventoryAction === 'view' && viewModal) {
+                populateView(record);
+                event.preventDefault();
+                currentRecord = record;
+                modal.open(viewModal, trigger);
+            } else if (trigger.dataset.inventoryAction === 'edit' && editModal) {
+                populateEdit(record);
+                event.preventDefault();
+                currentRecord = record;
+                modal.open(editModal, trigger);
+            }
+        });
     });
-}
 
-if (searchInput) {
-    searchInput.addEventListener(
-        "keyup",
-        applyInventoryFilters
-    );
-}
+    if (editFromView) {
+        editFromView.addEventListener('click', function () {
+            if (!currentRecord) return;
+            populateEdit(currentRecord);
+            modal.open(editModal, editFromView);
+        });
+    }
 
-if (categoryFilter) {
-    categoryFilter.addEventListener(
-        "change",
-        applyInventoryFilters
-    );
-}
+    if (addButton) {
+        addButton.addEventListener('click', async function () {
+            var idField = document.getElementById('inventoryID');
+            if (!idField || !addForm) return;
 
-if (conditionFilter) {
-    conditionFilter.addEventListener(
-        "change",
-        applyInventoryFilters
-    );
-}
+            addForm.reset();
+            idField.value = '';
+            addButton.disabled = true;
+
+            try {
+                var response = await fetch('next_inventory_id.php', {
+                    method: 'POST',
+                    cache: 'no-store'
+                });
+                if (!response.ok) throw new Error('Could not generate Inventory ID.');
+
+                var data = await response.json();
+                if (!data || typeof data.inventory_id !== 'string' || !data.inventory_id) {
+                    throw new Error('Invalid Inventory ID response.');
+                }
+
+                idField.value = data.inventory_id;
+                modal.open(addModal, addButton);
+            } catch (error) {
+                alert('Could not generate an Inventory ID. Please try again.');
+            } finally {
+                addButton.disabled = false;
+            }
+        });
+    }
+
+    var searchInput = document.getElementById('searchInput');
+    var categoryFilter = document.getElementById('categoryFilter');
+    var conditionFilter = document.getElementById('conditionFilter');
+
+    function applyFilters() {
+        var search = (searchInput ? searchInput.value : '').toLowerCase();
+        var category = (categoryFilter ? categoryFilter.value : '').toLowerCase();
+        var condition = (conditionFilter ? conditionFilter.value : '').toLowerCase();
+
+        document.querySelectorAll('#inventoryTable tbody tr.inventory-row').forEach(function (row) {
+            var matchesSearch = row.cells[0].textContent.toLowerCase().includes(search) ||
+                row.cells[1].textContent.toLowerCase().includes(search);
+            var matchesCategory = !category || row.cells[2].textContent.toLowerCase().trim() === category;
+            var matchesCondition = !condition || row.cells[4].textContent.toLowerCase().trim() === condition;
+            row.style.display = matchesSearch && matchesCategory && matchesCondition ? '' : 'none';
+        });
+    }
+
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (categoryFilter) categoryFilter.addEventListener('change', applyFilters);
+    if (conditionFilter) conditionFilter.addEventListener('change', applyFilters);
+})();

@@ -98,20 +98,7 @@ Add Maintenance
 
 <?php include "maintenance_table.php"; ?>
 
-<div
-    id="maintenanceModal"
-    class="modal"
->
-
-<div class="modal-content">
-
-<span class="close-modal">&times;</span>
-
-<?php include "maintenance_form.php"; ?>
-
-</div>
-
-</div>
+<?php include "maintenance_modals.php"; ?>
 
 </div>
 

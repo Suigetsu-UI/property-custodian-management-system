@@ -68,7 +68,24 @@ $inventoryRows = $stmt->fetchAll();
 
 <?php foreach ($inventoryRows as $item): ?>
 
-<tr class="inventory-row">
+<?php
+
+$inventoryPayload = htmlspecialchars(
+    json_encode(
+        $item,
+        JSON_HEX_TAG |
+        JSON_HEX_AMP |
+        JSON_HEX_APOS |
+        JSON_HEX_QUOT |
+        JSON_INVALID_UTF8_SUBSTITUTE
+    ),
+    ENT_QUOTES,
+    'UTF-8'
+);
+
+?>
+
+<tr class="inventory-row" data-record="<?= $inventoryPayload ?>">
 
 <td><?= htmlspecialchars($item['inventory_id']) ?></td>
 <td><?= htmlspecialchars($item['asset_name']) ?></td>
@@ -81,6 +98,7 @@ $inventoryRows = $stmt->fetchAll();
 <a
     href="view_inventory.php?id=<?= (int) $item['id'] ?>"
     class="btn btn-primary"
+    data-inventory-action="view"
 >
     View
 </a>
@@ -88,6 +106,7 @@ $inventoryRows = $stmt->fetchAll();
 <a
     href="edit_inventory.php?id=<?= (int) $item['id'] ?>"
     class="btn btn-warning"
+    data-inventory-action="edit"
 >
     Edit
 </a>

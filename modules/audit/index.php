@@ -160,20 +160,7 @@ Add Audit
 
 <?php include "audit_table.php"; ?>
 
-<div
-    id="auditModal"
-    class="modal"
->
-
-<div class="modal-content">
-
-<span class="close-modal">&times;</span>
-
-<?php include "audit_form.php"; ?>
-
-</div>
-
-</div>
+<?php include "audit_modals.php"; ?>
 
 </div>
 

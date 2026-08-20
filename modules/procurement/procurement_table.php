@@ -41,7 +41,15 @@ $procurementRows = $pdo
 
 <?php foreach ($procurementRows as $item): ?>
 
-<tr class="procurement-row">
+<?php
+$procurementPayload = htmlspecialchars(
+    json_encode($item, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE),
+    ENT_QUOTES,
+    'UTF-8'
+);
+?>
+
+<tr class="procurement-row" data-record="<?= $procurementPayload ?>">
 
 <td><?= htmlspecialchars($item['procurement_id']); ?></td>
 
@@ -57,11 +65,11 @@ $procurementRows = $pdo
 
 <td>
 
-<a href="view_procurement.php?id=<?= (int) $item['id'] ?>" class="btn btn-primary">
+<a href="view_procurement.php?id=<?= (int) $item['id'] ?>" class="btn btn-primary" data-procurement-action="view">
 View
 </a>
 
-<a href="edit_procurement.php?id=<?= (int) $item['id'] ?>" class="btn btn-warning">
+<a href="edit_procurement.php?id=<?= (int) $item['id'] ?>" class="btn btn-warning" data-procurement-action="edit">
 Edit
 </a>
 

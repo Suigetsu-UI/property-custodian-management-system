@@ -14,10 +14,18 @@ $sql =
     "SELECT
         m.id,
         m.maintenance_id,
+        m.asset_id,
+        m.asset_name_snap,
+        m.category_snap,
+        m.custodian_snap,
         m.maintenance_type,
         m.scheduled_date,
         m.status,
-        a.asset_name AS current_asset_name
+        a.asset_id AS asset_business_id,
+        a.asset_name AS current_asset_name,
+        a.category AS current_category,
+        a.custodian AS current_custodian,
+        a.status AS current_asset_status
      FROM maintenance m
      JOIN assets a
        ON a.id = m.asset_id
@@ -90,7 +98,15 @@ $maintenanceRows =
 
 <?php foreach ($maintenanceRows as $item): ?>
 
-<tr class="maintenance-row">
+<?php
+$maintenancePayload = htmlspecialchars(
+    json_encode($item, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE),
+    ENT_QUOTES,
+    'UTF-8'
+);
+?>
+
+<tr class="maintenance-row" data-record="<?= $maintenancePayload ?>">
 
 <td>
 <?= htmlspecialchars($item['maintenance_id']) ?>
@@ -117,6 +133,7 @@ $maintenanceRows =
 <a
     href="view_maintenance.php?id=<?= (int) $item['id'] ?>"
     class="btn btn-primary"
+    data-maintenance-action="view"
 >
 View
 </a>
@@ -124,6 +141,7 @@ View
 <a
     href="edit_maintenance.php?id=<?= (int) $item['id'] ?>"
     class="btn btn-warning"
+    data-maintenance-action="edit"
 >
 Edit
 </a>

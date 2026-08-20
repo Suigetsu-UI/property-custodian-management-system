@@ -15,6 +15,7 @@ require_once __DIR__ . '/../config/config.php';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/style.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/theme.css">
+    <script src="<?= BASE_URL ?>assets/js/pcms_modal.js"></script>
 
 </head>
 

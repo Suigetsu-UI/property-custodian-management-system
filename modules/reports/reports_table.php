@@ -109,6 +109,8 @@ $query = http_build_query([
 <a
     href="view_report.php?<?= htmlspecialchars($query) ?>"
     class="btn btn-primary"
+    data-report-action="view"
+    data-report-type="<?= htmlspecialchars($report['report_type']) ?>"
 >
 View
 </a>
