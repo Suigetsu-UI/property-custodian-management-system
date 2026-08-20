@@ -2,36 +2,27 @@
 
 require_once "../../auth/check_auth.php";
 
-$keyword = strtolower(trim($_GET['search'] ?? ''));
-$status = $_GET['status'] ?? '';
-$supplier = $_GET['supplier'] ?? '';
+$search =
+    trim($_GET['search'] ?? '');
 
-$filtered = [];
+$status =
+    trim($_GET['status'] ?? '');
 
-foreach ($_SESSION['procurement'] ?? [] as $item) {
+$query = http_build_query(
+    array_filter(
+        [
+            'search' => $search,
+            'status' => $status
+        ],
+        static function ($value) {
+            return $value !== '';
+        }
+    )
+);
 
-    $matchKeyword =
-        $keyword === '' ||
-        strpos(strtolower($item['procurement_id']), $keyword) !== false ||
-        strpos(strtolower($item['item_name']), $keyword) !== false ||
-        strpos(strtolower($item['category']), $keyword) !== false ||
-        strpos(strtolower($item['supplier']), $keyword) !== false ||
-        strpos(strtolower($item['status']), $keyword) !== false;
+header(
+    "Location: index.php" .
+    ($query !== '' ? '?' . $query : '')
+);
 
-    $matchStatus =
-        $status === '' ||
-        $item['status'] === $status;
-
-    $matchSupplier =
-        $supplier === '' ||
-        $item['supplier'] === $supplier;
-
-    if ($matchKeyword && $matchStatus && $matchSupplier) {
-        $filtered[] = $item;
-    }
-}
-
-$_SESSION['filtered_procurement'] = $filtered;
-
-header("Location: index.php");
 exit;

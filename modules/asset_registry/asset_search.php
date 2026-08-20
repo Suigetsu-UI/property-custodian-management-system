@@ -3,41 +3,37 @@
 <input
     type="text"
     id="searchInput"
-    placeholder="Search by Asset ID, Name, Brand..."
+    placeholder="Search by Asset ID, Name..."
 >
 
-    <select id="categoryFilter">
+<select id="categoryFilter">
 
-        <option value="">All Categories</option>
+<option value="">All Categories</option>
 
-        <option>Computer</option>
+<option>Computer</option>
+<option>Furniture</option>
+<option>Laboratory Equipment</option>
+<option>Office Equipment</option>
+<option>Electronics</option>
 
-        <option>Furniture</option>
+</select>
 
-        <option>Laboratory</option>
+<select id="statusFilter">
 
-        <option>Office Equipment</option>
+<option value="">All Status</option>
 
-    </select>
+<option>Available</option>
+<option>Assigned</option>
+<option>Under Maintenance</option>
+<option>Lost</option>
 
-    <select id="statusFilter">
+</select>
 
-        <option value="">All Status</option>
-
-        <option>Available</option>
-
-        <option>Assigned</option>
-
-        <option>Under Maintenance</option>
-
-        <option>Lost</option>
-
-    </select>
-
-    <button id="openAssetModal">
-
-        Register Asset
-
-    </button>
+<button
+    type="button"
+    id="openAssetModal"
+>
+    Register Asset
+</button>
 
 </div>

@@ -2,39 +2,26 @@
 
 require_once "../../auth/check_auth.php";
 
-$keyword = strtolower(trim($_GET['search'] ?? ''));
-$category = $_GET['category'] ?? '';
-$condition = $_GET['condition'] ?? '';
+$search = trim($_GET['search'] ?? '');
+$category = trim($_GET['category'] ?? '');
+$condition = trim($_GET['condition'] ?? '');
 
-$filtered = [];
+$query = http_build_query(
+    array_filter(
+        [
+            'search' => $search,
+            'category' => $category,
+            'condition' => $condition
+        ],
+        static function ($value) {
+            return $value !== '';
+        }
+    )
+);
 
-foreach ($_SESSION['inventory'] ?? [] as $item) {
+header(
+    "Location: index.php" .
+    ($query !== '' ? '?' . $query : '')
+);
 
-$matchKeyword =
-        $keyword === '' ||
-
-        strpos(strtolower($item['inventory_id']), $keyword) !== false ||
-
-        strpos(strtolower($item['asset_name']), $keyword) !== false ||
-
-        strpos(strtolower($item['category']), $keyword) !== false ||
-
-        strpos(strtolower($item['condition']), $keyword) !== false;
-        
-    $matchCategory =
-        $category === '' ||
-        $item['category'] === $category;
-
-    $matchCondition =
-        $condition === '' ||
-        $item['condition'] === $condition;
-
-    if ($matchKeyword && $matchCategory && $matchCondition) {
-        $filtered[] = $item;
-    }
-}
-
-$_SESSION['filtered_inventory'] = $filtered;
-
-header("Location: index.php");
 exit;

@@ -1,51 +1,137 @@
 <?php
 
-session_start();
+require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/database.php";
 
-if (!isset($_GET['id'])) {
-    header("Location:index.php");
-    exit();
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: index.php");
+    exit;
 }
 
-$id = (int)$_GET['id'];
+$id = filter_var(
+    $_GET['id'] ?? null,
+    FILTER_VALIDATE_INT,
+    [
+        'options' => [
+            'min_range' => 1
+        ]
+    ]
+);
 
-if (!isset($_SESSION['assets'][$id])) {
-    header("Location:index.php");
-    exit();
+if ($id === false) {
+    header("Location: index.php");
+    exit;
 }
 
-if (($_SESSION['assets'][$id]['status'] ?? 'Available') === 'Under Maintenance') {
-    header("Location:index.php?error=maintenance");
-    exit();
+$employeeId = trim($_POST['employee_id'] ?? '');
+$custodian = trim($_POST['custodian'] ?? '');
+$department = trim($_POST['department'] ?? '');
+$dateAssigned = trim($_POST['date_assigned'] ?? '');
+
+if (
+    $employeeId === '' ||
+    $custodian === '' ||
+    $department === '' ||
+    $dateAssigned === ''
+) {
+    header("Location: index.php?error=save_failed");
+    exit;
 }
 
-if (($_SESSION['assets'][$id]['status'] ?? 'Available') === 'Lost') {
-    header("Location:index.php?error=lost");
-    exit();
+$pdo = null;
+
+try {
+    $pdo = getDbConnection();
+
+    $pdo->beginTransaction();
+
+    $assetStmt = $pdo->prepare(
+        "SELECT *
+         FROM assets
+         WHERE id = :id
+         FOR UPDATE"
+    );
+
+    $assetStmt->execute([
+        'id' => $id
+    ]);
+
+    $asset = $assetStmt->fetch();
+
+    if (!$asset) {
+        $pdo->rollBack();
+
+        header("Location: index.php");
+        exit;
+    }
+
+    $maintenanceStmt = $pdo->prepare(
+        "SELECT 1
+         FROM maintenance
+         WHERE asset_id = :asset_id
+           AND status <> 'Completed'
+         LIMIT 1"
+    );
+
+    $maintenanceStmt->execute([
+        'asset_id' => $id
+    ]);
+
+    if (
+        $asset['status'] === 'Under Maintenance' ||
+        $maintenanceStmt->fetch()
+    ) {
+        $pdo->rollBack();
+
+        header("Location: index.php?error=maintenance");
+        exit;
+    }
+
+    if ($asset['status'] === 'Lost') {
+        $pdo->rollBack();
+
+        header("Location: index.php?error=lost");
+        exit;
+    }
+
+    if ($asset['status'] !== 'Available') {
+        $pdo->rollBack();
+
+        header("Location: index.php");
+        exit;
+    }
+
+    $update = $pdo->prepare(
+        "UPDATE assets
+         SET
+            employee_id = :employee_id,
+            custodian = :custodian,
+            department = :department,
+            date_assigned = :date_assigned,
+            status = 'Assigned',
+            updated_at = now()
+         WHERE id = :id"
+    );
+
+    $update->execute([
+        'employee_id' => $employeeId,
+        'custodian' => $custodian,
+        'department' => $department,
+        'date_assigned' => $dateAssigned,
+        'id' => $id
+    ]);
+
+    $pdo->commit();
+
+} catch (Throwable $e) {
+
+    if ($pdo instanceof PDO && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    header("Location: index.php?error=save_failed");
+    exit;
 }
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-
-    $employeeId = trim($_POST['employee_id'] ?? '');
-    $custodian = trim($_POST['custodian'] ?? '');
-
-    $_SESSION['assets'][$id]['employee_id']
-        = $employeeId;
-
-    $_SESSION['assets'][$id]['custodian']
-        = $custodian;
-
-    $_SESSION['assets'][$id]['department']
-        = trim($_POST['department'] ?? '');
-
-    $_SESSION['assets'][$id]['date_assigned']
-        = trim($_POST['date_assigned'] ?? '');
-
-    $_SESSION['assets'][$id]['status']
-        = ($employeeId !== '' && $custodian !== '') ? 'Assigned' : 'Available';
-
-}
-
-header("Location:index.php");
-
-exit();
+header("Location: index.php");
+exit;

@@ -1,6 +1,29 @@
 <?php
 
 require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/asset_functions.php";
+
+try {
+    $pdo = getDbConnection();
+
+    $maintenanceIdForForm =
+        nextBusinessId(
+            $pdo,
+            'maintenance',
+            'MNT'
+        );
+
+    if (!isset($_SESSION['pending_maintenance_ids'])) {
+        $_SESSION['pending_maintenance_ids'] = [];
+    }
+
+    $_SESSION['pending_maintenance_ids'][$maintenanceIdForForm] = true;
+
+} catch (Throwable $e) {
+    header("Location: index.php?error=save_failed");
+    exit;
+}
 
 include "../../includes/header.php";
 

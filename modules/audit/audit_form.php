@@ -1,180 +1,298 @@
 <?php
-require_once __DIR__ . "/../../includes/asset_functions.php";
-$form_action = isset($id) && $id !== null ? "edit_audit.php?id={$id}" : "schedule_audit.php";
-$default_audit_id = generateAuditID();
-$linkedAsset = isset($audit['asset_id']) && $audit['asset_id'] !== '' ? getAssetByID($audit['asset_id']) : null;
+
+require_once __DIR__ . "/../../includes/database.php";
+
+$pdo = getDbConnection();
+
+$isEdit =
+    isset($audit) &&
+    is_array($audit);
+
+$formAction = $isEdit
+    ? "edit_audit.php?id=" . (int) $audit['id']
+    : "schedule_audit.php";
+
+$auditIdValue = $isEdit
+    ? ($audit['audit_id'] ?? '')
+    : ($auditIdForForm ?? '');
+
+$assetRows = [];
+
+if (!$isEdit) {
+    $assetStmt = $pdo->query(
+        "SELECT
+            id,
+            asset_id,
+            asset_name,
+            category,
+            custodian,
+            status
+         FROM assets
+         ORDER BY id ASC"
+    );
+
+    $assetRows = $assetStmt->fetchAll();
+}
+
 ?>
-<form class="asset-form" method="POST" action="<?= $form_action ?>">
 
-    <input type="hidden" name="id" value="<?= htmlspecialchars((string) ($id ?? '')) ?>">
+<form
+    class="asset-form"
+    method="POST"
+    action="<?= htmlspecialchars($formAction) ?>"
+>
 
-    <div class="form-row">
+<div class="form-row">
 
-        <label>Audit ID</label>
+<label>Audit ID</label>
 
-        <input
-            type="text"
-            id="auditID"
-            name="audit_id"
-            value="<?= htmlspecialchars($audit['audit_id'] ?? $default_audit_id); ?>"
-            readonly>
+<input
+    type="text"
+    id="auditID"
+    name="audit_id"
+    value="<?= htmlspecialchars($auditIdValue) ?>"
+    readonly
+>
 
-    </div>
+</div>
 
-    <div class="form-row">
+<div class="form-row">
 
-        <label>Registered Asset</label>
+<label>Registered Asset</label>
 
-        <?php if (isset($audit)): ?>
+<?php if ($isEdit): ?>
 
-        <input
-            type="text"
-            value="<?= htmlspecialchars((($audit['asset_id'] ?? '') . ' - ' . ($linkedAsset['asset_name'] ?? $audit['asset_name'] ?? ''))) ?>"
-            readonly>
+<input
+    type="text"
+    value="<?= htmlspecialchars(
+        ($audit['asset_business_id'] ?? '') .
+        ' - ' .
+        ($audit['current_asset_name'] ?? $audit['asset_name_snap'] ?? '')
+    ) ?>"
+    readonly
+>
 
-        <input type="hidden" name="asset_id" value="<?= htmlspecialchars($audit['asset_id'] ?? '') ?>">
+<input
+    type="hidden"
+    name="asset_id"
+    value="<?= (int) $audit['asset_id'] ?>"
+>
 
-        <?php else: ?>
+<?php else: ?>
 
-        <select name="asset_id" id="auditAssetSelect" required>
+<select
+    name="asset_id"
+    id="auditAssetSelect"
+    required
+>
 
-            <option value="">Select Registered Asset</option>
+<option value="">Select Registered Asset</option>
 
-            <?php foreach (($_SESSION['assets'] ?? []) as $asset): ?>
+<?php foreach ($assetRows as $asset): ?>
 
-            <option
-                value="<?= htmlspecialchars($asset['asset_id']) ?>"
-                data-name="<?= htmlspecialchars($asset['asset_name']) ?>"
-                data-category="<?= htmlspecialchars($asset['category']) ?>"
-                data-custodian="<?= htmlspecialchars($asset['custodian'] ?? '') ?>"
-                data-status="<?= htmlspecialchars($asset['status'] ?? 'Available') ?>"
-            >
-            <?= htmlspecialchars($asset['asset_id'] . ' - ' . $asset['asset_name']) ?>
-            </option>
+<option
+    value="<?= (int) $asset['id'] ?>"
+    data-name="<?= htmlspecialchars($asset['asset_name']) ?>"
+    data-category="<?= htmlspecialchars($asset['category']) ?>"
+    data-custodian="<?= htmlspecialchars($asset['custodian'] ?? '') ?>"
+    data-status="<?= htmlspecialchars($asset['status']) ?>"
+>
+    <?= htmlspecialchars(
+        $asset['asset_id'] .
+        ' - ' .
+        $asset['asset_name']
+    ) ?>
+</option>
 
-            <?php endforeach; ?>
+<?php endforeach; ?>
 
-        </select>
+</select>
 
-        <?php endif; ?>
+<?php endif; ?>
 
-    </div>
+</div>
 
-    <div class="form-row">
+<div class="form-row">
 
+<label>Asset Name</label>
 
-        <label>Asset Name</label>
+<input
+    type="text"
+    id="auditAssetName"
+    name="asset_name"
+    value="<?= htmlspecialchars(
+        $audit['current_asset_name']
+            ?? $audit['asset_name_snap']
+            ?? ''
+    ) ?>"
+    readonly
+    placeholder="Auto-filled from Asset Registry"
+>
 
-        <input
-            type="text"
-            id="auditAssetName"
-            name="asset_name"
-            value="<?= htmlspecialchars($linkedAsset['asset_name'] ?? ($audit['asset_name'] ?? '')) ?>"
-            readonly
-            placeholder="Auto-filled from Asset Registry">
+</div>
 
-    </div>
+<div class="form-row">
 
-    <div class="form-row">
+<label>Category</label>
 
-        <label>Category</label>
+<input
+    type="text"
+    id="auditCategory"
+    name="category"
+    value="<?= htmlspecialchars(
+        $audit['current_category']
+            ?? $audit['category_snap']
+            ?? ''
+    ) ?>"
+    readonly
+    placeholder="Auto-filled from Asset Registry"
+>
 
-        <input
-            type="text"
-            id="auditCategory"
-            name="category"
-            value="<?= htmlspecialchars($linkedAsset['category'] ?? ($audit['category'] ?? '')) ?>"
-            readonly
-            placeholder="Auto-filled from Asset Registry">
+</div>
 
-    </div>
+<div class="form-row">
 
-    <div class="form-row">
+<label>Custodian</label>
 
-        <label>Custodian</label>
+<input
+    type="text"
+    id="auditCustodian"
+    name="custodian"
+    value="<?= htmlspecialchars(
+        $audit['current_custodian']
+            ?? $audit['custodian_snap']
+            ?? ''
+    ) ?>"
+    readonly
+    placeholder="Not Assigned"
+>
 
-        <input
-            type="text"
-            id="auditCustodian"
-            name="custodian"
-            value="<?= htmlspecialchars($linkedAsset['custodian'] ?? ($audit['custodian'] ?? '')) ?>"
-            readonly
-            placeholder="Not Assigned">
+</div>
 
-    </div>
+<div class="form-row">
 
-    <div class="form-row">
+<label>Current Asset Status</label>
 
-        <label>Current Asset Status</label>
+<input
+    type="text"
+    id="auditAssetStatus"
+    value="<?= htmlspecialchars(
+        $audit['current_asset_status'] ?? ''
+    ) ?>"
+    readonly
+    placeholder="Auto-filled from Asset Registry"
+>
 
-        <input
-            type="text"
-            id="auditAssetStatus"
-            value="<?= htmlspecialchars($linkedAsset['status'] ?? '') ?>"
-            readonly
-            placeholder="Auto-filled from Asset Registry">
+</div>
 
-    </div>
+<div class="form-row">
 
-    <div class="form-row">
+<label>Auditor</label>
 
-        <label>Auditor</label>
+<input
+    type="text"
+    name="auditor"
+    value="<?= htmlspecialchars($audit['auditor'] ?? '') ?>"
+    required
+>
 
-        <input
-            type="text"
-            name="auditor"
-            value="<?= htmlspecialchars($audit['auditor'] ?? '') ?>"
-            required>
+</div>
 
-    </div>
+<div class="form-row">
 
-    <div class="form-row">
+<label>Audit Date</label>
 
-        <label>Audit Date</label>
+<input
+    type="date"
+    name="audit_date"
+    value="<?= htmlspecialchars($audit['audit_date'] ?? '') ?>"
+    required
+>
 
-        <input
-            type="date"
-            name="audit_date"
-            value="<?= htmlspecialchars($audit['audit_date'] ?? '') ?>"
-            required>
+</div>
 
-    </div>
+<div class="form-row">
 
-    <div class="form-row">
+<label>Audit Result</label>
 
-        <label>Audit Result</label>
+<select name="result" required>
 
-        <select name="result">
-            <option <?= (($audit['result'] ?? '') == 'Verified') ? 'selected' : '' ?>>Verified</option>
-            <option <?= (($audit['result'] ?? '') == 'Missing') ? 'selected' : '' ?>>Missing</option>
-            <option <?= (($audit['result'] ?? '') == 'Damaged') ? 'selected' : '' ?>>Damaged</option>
-            <option <?= (($audit['result'] ?? '') == 'For Investigation') ? 'selected' : '' ?>>For Investigation</option>
-        </select>
+<option
+    value="Verified"
+    <?= (($audit['result'] ?? '') === 'Verified') ? 'selected' : '' ?>
+>
+Verified
+</option>
 
-    </div>
+<option
+    value="Missing"
+    <?= (($audit['result'] ?? '') === 'Missing') ? 'selected' : '' ?>
+>
+Missing
+</option>
 
-    <div class="form-row">
+<option
+    value="Damaged"
+    <?= (($audit['result'] ?? '') === 'Damaged') ? 'selected' : '' ?>
+>
+Damaged
+</option>
 
-        <label>Remarks</label>
+<option
+    value="For Investigation"
+    <?= (($audit['result'] ?? '') === 'For Investigation') ? 'selected' : '' ?>
+>
+For Investigation
+</option>
 
-        <textarea name="remarks"><?= htmlspecialchars($audit['remarks'] ?? '') ?></textarea>
+</select>
 
-    </div>
+</div>
 
-    <div class="form-row">
+<div class="form-row">
 
-        <label>Status</label>
+<label>Remarks</label>
 
-        <select name="status">
-            <option <?= (($audit['status'] ?? '') == 'Scheduled') ? 'selected' : '' ?>>Scheduled</option>
-            <option <?= (($audit['status'] ?? '') == 'Ongoing') ? 'selected' : '' ?>>Ongoing</option>
-            <option <?= (($audit['status'] ?? '') == 'Completed') ? 'selected' : '' ?>>Completed</option>
-        </select>
+<textarea name="remarks"><?= htmlspecialchars($audit['remarks'] ?? '') ?></textarea>
 
-    </div>
+</div>
 
-    <button type="submit" class="btn btn-primary">
-        <?= isset($id) && $id !== null ? 'Update Audit' : 'Save Audit'; ?>
-    </button>
+<div class="form-row">
+
+<label>Status</label>
+
+<select name="status" required>
+
+<option
+    value="Scheduled"
+    <?= (($audit['status'] ?? '') === 'Scheduled') ? 'selected' : '' ?>
+>
+Scheduled
+</option>
+
+<option
+    value="Ongoing"
+    <?= (($audit['status'] ?? '') === 'Ongoing') ? 'selected' : '' ?>
+>
+Ongoing
+</option>
+
+<option
+    value="Completed"
+    <?= (($audit['status'] ?? '') === 'Completed') ? 'selected' : '' ?>
+>
+Completed
+</option>
+
+</select>
+
+</div>
+
+<button
+    type="submit"
+    class="btn btn-primary"
+>
+    <?= $isEdit ? 'Update Audit' : 'Save Audit' ?>
+</button>
 
 </form>

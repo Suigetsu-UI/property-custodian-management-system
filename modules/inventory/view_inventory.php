@@ -1,13 +1,39 @@
 <?php
 
 require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/database.php";
 
+$idRaw = $_GET['id'] ?? null;
+
+$id = filter_var(
+    $idRaw,
+    FILTER_VALIDATE_INT,
+    [
+        'options' => [
+            'min_range' => 1
+        ]
+    ]
+);
+
+$inventory = null;
+
+if ($id !== false) {
+    $pdo = getDbConnection();
+
+    $stmt = $pdo->prepare(
+        "SELECT *
+         FROM inventory
+         WHERE id = :id"
+    );
+
+    $stmt->execute([
+        'id' => $id
+    ]);
+
+    $inventory = $stmt->fetch() ?: null;
+}
 
 include "../../includes/header.php";
-
-$id = $_GET['id'] ?? null;
-
-$inventory = $_SESSION['inventory'][$id] ?? null;
 
 ?>
 
@@ -21,10 +47,10 @@ $inventory = $_SESSION['inventory'][$id] ?? null;
 
 <hr>
 <br>
+
 <?php if ($inventory): ?>
 
 <table class="asset-table">
-
 
 <tr>
     <th style="width:220px;">Inventory ID</th>
@@ -56,9 +82,7 @@ $inventory = $_SESSION['inventory'][$id] ?? null;
 <br>
 
 <a href="index.php" class="btn btn-primary">
-
-Back to Inventory
-
+    Back to Inventory
 </a>
 
 <?php else: ?>
@@ -66,9 +90,7 @@ Back to Inventory
 <p>Inventory record not found.</p>
 
 <a href="index.php" class="btn btn-primary">
-
-Back
-
+    Back
 </a>
 
 <?php endif; ?>

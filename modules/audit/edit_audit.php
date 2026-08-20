@@ -1,60 +1,276 @@
 <?php
 
 require_once "../../auth/check_auth.php";
-require_once __DIR__ . "/../../includes/asset_functions.php";
-include "../../includes/header.php";
+require_once __DIR__ . "/../../includes/database.php";
 
-$id = isset($_GET['id']) ? (int) $_GET['id'] : null;
+$id = filter_var(
+    $_GET['id'] ?? null,
+    FILTER_VALIDATE_INT,
+    [
+        'options' => [
+            'min_range' => 1
+        ]
+    ]
+);
 
-if ($id === null || !isset($_SESSION['audits'][$id])) {
+if ($id === false) {
     header("Location: index.php");
     exit;
 }
 
-$audit = $_SESSION['audits'][$id];
+$pdo = getDbConnection();
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $assetId = $audit['asset_id'] ?? '';
-    $linkedAsset = $assetId !== '' ? getAssetByID($assetId) : null;
-    $result = $_POST["result"];
+    $auditor =
+        trim($_POST['auditor'] ?? '');
 
-    $_SESSION['audits'][$id] = [
-        "audit_id" => $audit["audit_id"],
-        "asset_id" => $assetId,
-        "asset_name" => $linkedAsset['asset_name'] ?? $audit['asset_name'],
-        "category" => $linkedAsset['category'] ?? $audit['category'],
-        "custodian" => $linkedAsset['custodian'] ?? '',
-        "auditor" => $_POST["auditor"],
-        "audit_date" => $_POST["audit_date"],
-        "result" => $result,
-        "remarks" => $_POST["remarks"] ?? '',
-        "status" => $_POST["status"]
+    $auditDate =
+        trim($_POST['audit_date'] ?? '');
+
+    $result =
+        trim($_POST['result'] ?? '');
+
+    $remarks =
+        trim($_POST['remarks'] ?? '');
+
+    $status =
+        trim($_POST['status'] ?? '');
+
+    $allowedResults = [
+        'Verified',
+        'Missing',
+        'Damaged',
+        'For Investigation'
     ];
 
-    if ($assetId !== '') {
-        updateAssetStatusFromAudit($assetId, $result);
+    $allowedStatuses = [
+        'Scheduled',
+        'Ongoing',
+        'Completed'
+    ];
+
+    if (
+        $auditor === '' ||
+        $auditDate === '' ||
+        !in_array($result, $allowedResults, true) ||
+        !in_array($status, $allowedStatuses, true)
+    ) {
+        header("Location: index.php?error=save_failed");
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        /*
+         * Lock the Audit row. Linked Asset remains immutable.
+         */
+        $auditStmt = $pdo->prepare(
+            "SELECT
+                id,
+                asset_id
+             FROM audits
+             WHERE id = :id
+             FOR UPDATE"
+        );
+
+        $auditStmt->execute([
+            'id' => $id
+        ]);
+
+        $existing = $auditStmt->fetch();
+
+        if (!$existing) {
+            $pdo->rollBack();
+
+            header("Location: index.php");
+            exit;
+        }
+
+        $assetStmt = $pdo->prepare(
+            "SELECT
+                id,
+                asset_name,
+                category,
+                custodian,
+                status
+             FROM assets
+             WHERE id = :id
+             FOR UPDATE"
+        );
+
+        $assetStmt->execute([
+            'id' => $existing['asset_id']
+        ]);
+
+        $asset = $assetStmt->fetch();
+
+        if (!$asset) {
+            throw new RuntimeException(
+                'AUDIT_ASSET_MISSING'
+            );
+        }
+
+        /*
+         * Existing session implementation refreshed the stored
+         * Asset snapshot when an Audit was edited.
+         */
+        $updateAudit = $pdo->prepare(
+            "UPDATE audits
+             SET
+                asset_name_snap = :asset_name_snap,
+                category_snap = :category_snap,
+                custodian_snap = :custodian_snap,
+                auditor = :auditor,
+                audit_date = :audit_date,
+                result = :result,
+                remarks = :remarks,
+                status = :status,
+                updated_at = now()
+             WHERE id = :id"
+        );
+
+        $updateAudit->execute([
+            'asset_name_snap' => $asset['asset_name'],
+            'category_snap' => $asset['category'],
+            'custodian_snap' => $asset['custodian'],
+            'auditor' => $auditor,
+            'audit_date' => $auditDate,
+            'result' => $result,
+            'remarks' => $remarks,
+            'status' => $status,
+            'id' => $id
+        ]);
+
+        $activeMaintenanceStmt = $pdo->prepare(
+            "SELECT 1
+             FROM maintenance
+             WHERE asset_id = :asset_id
+               AND status <> 'Completed'
+             LIMIT 1"
+        );
+
+        $activeMaintenanceStmt->execute([
+            'asset_id' => $existing['asset_id']
+        ]);
+
+        $hasActiveMaintenance =
+            (bool) $activeMaintenanceStmt->fetch();
+
+        $newAssetStatus = null;
+
+        if (
+            $hasActiveMaintenance &&
+            in_array(
+                $result,
+                ['Verified', 'For Investigation'],
+                true
+            )
+        ) {
+            $newAssetStatus = null;
+
+        } else {
+            switch ($result) {
+
+                case 'Missing':
+                    $newAssetStatus = 'Lost';
+                    break;
+
+                case 'Damaged':
+                    $newAssetStatus = 'Under Maintenance';
+                    break;
+
+                case 'Verified':
+                    $newAssetStatus =
+                        !empty($asset['custodian'])
+                            ? 'Assigned'
+                            : 'Available';
+                    break;
+
+                case 'For Investigation':
+                default:
+                    $newAssetStatus = null;
+                    break;
+            }
+        }
+
+        if ($newAssetStatus !== null) {
+            $updateAsset = $pdo->prepare(
+                "UPDATE assets
+                 SET
+                    status = :status,
+                    updated_at = now()
+                 WHERE id = :id"
+            );
+
+            $updateAsset->execute([
+                'status' => $newAssetStatus,
+                'id' => $existing['asset_id']
+            ]);
+        }
+
+        $pdo->commit();
+
+    } catch (Throwable $e) {
+
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        header("Location: index.php?error=save_failed");
+        exit;
     }
 
     header("Location: index.php");
     exit;
 }
 
+/*
+ * GET before HTML output.
+ */
+$stmt = $pdo->prepare(
+    "SELECT
+        au.*,
+        a.asset_id AS asset_business_id,
+        a.asset_name AS current_asset_name,
+        a.category AS current_category,
+        a.custodian AS current_custodian,
+        a.status AS current_asset_status
+     FROM audits au
+     JOIN assets a
+       ON a.id = au.asset_id
+     WHERE au.id = :id"
+);
+
+$stmt->execute([
+    'id' => $id
+]);
+
+$audit = $stmt->fetch();
+
+if (!$audit) {
+    header("Location: index.php");
+    exit;
+}
+
+include "../../includes/header.php";
+
 ?>
 
 <div class="layout">
 
-    <?php include "../../includes/sidebar.php"; ?>
+<?php include "../../includes/sidebar.php"; ?>
 
-    <div class="main-content">
+<div class="main-content">
 
-        <h1>Edit Audit</h1>
+<h1>Edit Audit</h1>
 
-        <hr>
+<hr>
 
-        <?php include "audit_form.php"; ?>
+<?php include "audit_form.php"; ?>
 
-    </div>
+</div>
 
 </div>
 

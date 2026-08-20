@@ -1,12 +1,49 @@
 <?php
-require_once __DIR__ . "/../../includes/asset_functions.php";
-$form_action = isset($id) ? "edit_maintenance.php?id={$id}" : "save_maintenance.php";
-$default_maintenance_id = generateMaintenanceID();
-$linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '' ? getAssetByID($maintenance['asset_id']) : null;
-?>
-<form class="asset-form" method="POST" action="<?= $form_action ?>">
 
-<h2><?= isset($maintenance) ? "Edit Maintenance" : "Add Maintenance" ?></h2>
+require_once __DIR__ . "/../../includes/database.php";
+
+$pdo = getDbConnection();
+
+$isEdit =
+    isset($maintenance) &&
+    is_array($maintenance);
+
+$formAction = $isEdit
+    ? "edit_maintenance.php?id=" . (int) $maintenance['id']
+    : "save_maintenance.php";
+
+$maintenanceIdValue = $isEdit
+    ? ($maintenance['maintenance_id'] ?? '')
+    : ($maintenanceIdForForm ?? '');
+
+$availableAssets = [];
+
+if (!$isEdit) {
+    $assetStmt = $pdo->query(
+        "SELECT
+            id,
+            asset_id,
+            asset_name,
+            category,
+            custodian,
+            status
+         FROM assets
+         WHERE status IN ('Available', 'Assigned')
+         ORDER BY id ASC"
+    );
+
+    $availableAssets = $assetStmt->fetchAll();
+}
+
+?>
+
+<form
+    class="asset-form"
+    method="POST"
+    action="<?= htmlspecialchars($formAction) ?>"
+>
+
+<h2><?= $isEdit ? 'Edit Maintenance' : 'Add Maintenance' ?></h2>
 
 <div class="form-row">
 
@@ -16,7 +53,7 @@ $linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '
     type="text"
     id="maintenanceID"
     name="maintenance_id"
-    value="<?= htmlspecialchars($maintenance['maintenance_id'] ?? $default_maintenance_id) ?>"
+    value="<?= htmlspecialchars($maintenanceIdValue) ?>"
     readonly
 >
 
@@ -26,37 +63,49 @@ $linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '
 
 <label>Registered Asset</label>
 
-<?php if (isset($maintenance)): ?>
+<?php if ($isEdit): ?>
 
 <input
     type="text"
-    value="<?= htmlspecialchars((($maintenance['asset_id'] ?? '') . ' - ' . ($linkedAsset['asset_name'] ?? $maintenance['asset_name'] ?? ''))) ?>"
+    value="<?= htmlspecialchars(
+        ($maintenance['asset_business_id'] ?? '') .
+        ' - ' .
+        ($maintenance['current_asset_name'] ?? $maintenance['asset_name_snap'] ?? '')
+    ) ?>"
     readonly
 >
 
-<input type="hidden" name="asset_id" value="<?= htmlspecialchars($maintenance['asset_id'] ?? '') ?>">
+<input
+    type="hidden"
+    name="asset_id"
+    value="<?= (int) $maintenance['asset_id'] ?>"
+>
 
 <?php else: ?>
 
-<select name="asset_id" id="maintenanceAssetSelect" required>
+<select
+    name="asset_id"
+    id="maintenanceAssetSelect"
+    required
+>
 
 <option value="">Select Registered Asset</option>
 
-<?php foreach (($_SESSION['assets'] ?? []) as $asset): ?>
-
-<?php if (in_array($asset['status'] ?? 'Available', ['Available', 'Assigned'], true)): ?>
+<?php foreach ($availableAssets as $asset): ?>
 
 <option
-    value="<?= htmlspecialchars($asset['asset_id']) ?>"
+    value="<?= (int) $asset['id'] ?>"
     data-name="<?= htmlspecialchars($asset['asset_name']) ?>"
     data-category="<?= htmlspecialchars($asset['category']) ?>"
     data-custodian="<?= htmlspecialchars($asset['custodian'] ?? '') ?>"
-    data-status="<?= htmlspecialchars($asset['status'] ?? 'Available') ?>"
+    data-status="<?= htmlspecialchars($asset['status']) ?>"
 >
-<?= htmlspecialchars($asset['asset_id'] . ' - ' . $asset['asset_name']) ?>
+    <?= htmlspecialchars(
+        $asset['asset_id'] .
+        ' - ' .
+        $asset['asset_name']
+    ) ?>
 </option>
-
-<?php endif; ?>
 
 <?php endforeach; ?>
 
@@ -74,7 +123,11 @@ $linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '
     type="text"
     id="maintenanceAssetName"
     name="asset_name"
-    value="<?= htmlspecialchars($linkedAsset['asset_name'] ?? ($maintenance['asset_name'] ?? '')) ?>"
+    value="<?= htmlspecialchars(
+        $maintenance['current_asset_name']
+            ?? $maintenance['asset_name_snap']
+            ?? ''
+    ) ?>"
     readonly
     placeholder="Auto-filled from Asset Registry"
 >
@@ -89,7 +142,11 @@ $linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '
     type="text"
     id="maintenanceCategory"
     name="category"
-    value="<?= htmlspecialchars($linkedAsset['category'] ?? ($maintenance['category'] ?? '')) ?>"
+    value="<?= htmlspecialchars(
+        $maintenance['current_category']
+            ?? $maintenance['category_snap']
+            ?? ''
+    ) ?>"
     readonly
     placeholder="Auto-filled from Asset Registry"
 >
@@ -103,7 +160,9 @@ $linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '
 <input
     type="text"
     id="maintenanceCustodian"
-    value="<?= htmlspecialchars($linkedAsset['custodian'] ?? ($maintenance['custodian'] ?? '')) ?>"
+    value="<?= htmlspecialchars(
+        $maintenance['current_custodian'] ?? ''
+    ) ?>"
     readonly
     placeholder="Not Assigned"
 >
@@ -117,7 +176,9 @@ $linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '
 <input
     type="text"
     id="maintenanceAssetStatus"
-    value="<?= htmlspecialchars($linkedAsset['status'] ?? '') ?>"
+    value="<?= htmlspecialchars(
+        $maintenance['current_asset_status'] ?? ''
+    ) ?>"
     readonly
     placeholder="Auto-filled from Asset Registry"
 >
@@ -128,17 +189,26 @@ $linkedAsset = isset($maintenance['asset_id']) && $maintenance['asset_id'] !== '
 
 <label>Maintenance Type</label>
 
-<select name="maintenance_type">
+<select name="maintenance_type" required>
 
-<option <?= (($maintenance['maintenance_type'] ?? '') == 'Preventive') ? 'selected' : '' ?>>
+<option
+    value="Preventive"
+    <?= (($maintenance['maintenance_type'] ?? '') === 'Preventive') ? 'selected' : '' ?>
+>
 Preventive
 </option>
 
-<option <?= (($maintenance['maintenance_type'] ?? '') == 'Corrective') ? 'selected' : '' ?>>
+<option
+    value="Corrective"
+    <?= (($maintenance['maintenance_type'] ?? '') === 'Corrective') ? 'selected' : '' ?>
+>
 Corrective
 </option>
 
-<option <?= (($maintenance['maintenance_type'] ?? '') == 'Inspection') ? 'selected' : '' ?>>
+<option
+    value="Inspection"
+    <?= (($maintenance['maintenance_type'] ?? '') === 'Inspection') ? 'selected' : '' ?>
+>
 Inspection
 </option>
 
@@ -153,7 +223,7 @@ Inspection
 <input
     type="date"
     name="scheduled_date"
-    value="<?= $maintenance['scheduled_date'] ?? '' ?>"
+    value="<?= htmlspecialchars($maintenance['scheduled_date'] ?? '') ?>"
     required
 >
 
@@ -163,17 +233,26 @@ Inspection
 
 <label>Status</label>
 
-<select name="status">
+<select name="status" required>
 
-<option <?= (($maintenance['status'] ?? '') == 'Scheduled') ? 'selected' : '' ?>>
+<option
+    value="Scheduled"
+    <?= (($maintenance['status'] ?? '') === 'Scheduled') ? 'selected' : '' ?>
+>
 Scheduled
 </option>
 
-<option <?= (($maintenance['status'] ?? '') == 'In Progress') ? 'selected' : '' ?>>
+<option
+    value="In Progress"
+    <?= (($maintenance['status'] ?? '') === 'In Progress') ? 'selected' : '' ?>
+>
 In Progress
 </option>
 
-<option <?= (($maintenance['status'] ?? '') == 'Completed') ? 'selected' : '' ?>>
+<option
+    value="Completed"
+    <?= (($maintenance['status'] ?? '') === 'Completed') ? 'selected' : '' ?>
+>
 Completed
 </option>
 
@@ -181,17 +260,11 @@ Completed
 
 </div>
 
-<input
-    type="hidden"
-    name="id"
-    value="<?= htmlspecialchars((string) ($id ?? '')) ?>">
-
 <button
-type="submit"
-class="btn btn-primary">
-
-<?= isset($maintenance) ? "Update Maintenance" : "Save Maintenance"; ?>
-
+    type="submit"
+    class="btn btn-primary"
+>
+    <?= $isEdit ? 'Update Maintenance' : 'Save Maintenance' ?>
 </button>
 
 </form>

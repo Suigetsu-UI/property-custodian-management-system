@@ -1,39 +1,62 @@
+<?php
+
+require_once __DIR__ . "/../../includes/database.php";
+
+$pdo = getDbConnection();
+
+$inventoryStmt = $pdo->query(
+    "SELECT
+        id,
+        inventory_id,
+        asset_name,
+        category,
+        quantity
+     FROM inventory
+     WHERE quantity > 0
+     ORDER BY id ASC"
+);
+
+$availableInventoryRows = $inventoryStmt->fetchAll();
+
+?>
+
 <div id="assetModal" class="modal">
 
-    <div class="modal-content">
+<div class="modal-content">
 
-        <span class="close-modal">&times;</span>
+<span class="close-modal">&times;</span>
 
-
-<form class="asset-form" method="POST" action="register_asset.php">
+<form
+    class="asset-form"
+    method="POST"
+    action="register_asset.php"
+>
 
 <h2>Register New Asset</h2>
 
 <div class="form-row">
 
-<div class="form-row">
+<label>Asset ID</label>
 
-    <label>Asset ID</label>
-
-    <input
-        type="text"
-        id="assetID"
-        readonly
-    >
+<input
+    type="text"
+    id="assetID"
+    name="asset_id"
+    value=""
+    readonly
+>
 
 </div>
-
 
 <div class="form-row">
 
 <label>QR Code</label>
 
 <input
-type="text"
-value="Automatically Generated After Saving"
-readonly>
-
-</div>
+    type="text"
+    value="Automatically Generated After Saving"
+    readonly
+>
 
 </div>
 
@@ -41,23 +64,30 @@ readonly>
 
 <label>Select Inventory Item</label>
 
-<select name="inventory_id" id="inventoryItemSelect" required>
+<select
+    name="inventory_id"
+    id="inventoryItemSelect"
+    required
+>
 
 <option value="">Select Inventory Item</option>
 
-<?php foreach (($_SESSION['inventory'] ?? []) as $item): ?>
-
-<?php if ((int) ($item['quantity'] ?? 0) > 0): ?>
+<?php foreach ($availableInventoryRows as $item): ?>
 
 <option
-    value="<?= htmlspecialchars($item['inventory_id']) ?>"
+    value="<?= (int) $item['id'] ?>"
     data-name="<?= htmlspecialchars($item['asset_name']) ?>"
     data-category="<?= htmlspecialchars($item['category']) ?>"
 >
-<?= htmlspecialchars($item['inventory_id'] . ' - ' . $item['asset_name'] . ' (Qty: ' . $item['quantity'] . ')') ?>
+    <?= htmlspecialchars(
+        $item['inventory_id'] .
+        ' - ' .
+        $item['asset_name'] .
+        ' (Qty: ' .
+        $item['quantity'] .
+        ')'
+    ) ?>
 </option>
-
-<?php endif; ?>
 
 <?php endforeach; ?>
 
@@ -69,7 +99,13 @@ readonly>
 
 <label>Asset Name</label>
 
-<input type="text" id="assetNameField" name="asset_name" readonly placeholder="Auto-filled from Inventory">
+<input
+    type="text"
+    id="assetNameField"
+    name="asset_name"
+    readonly
+    placeholder="Auto-filled from Inventory"
+>
 
 </div>
 
@@ -77,7 +113,13 @@ readonly>
 
 <label>Category</label>
 
-<input type="text" id="assetCategoryField" name="category" readonly placeholder="Auto-filled from Inventory">
+<input
+    type="text"
+    id="assetCategoryField"
+    name="category"
+    readonly
+    placeholder="Auto-filled from Inventory"
+>
 
 </div>
 
@@ -85,7 +127,10 @@ readonly>
 
 <label>Brand</label>
 
-<input type="text" name="brand">
+<input
+    type="text"
+    name="brand"
+>
 
 </div>
 
@@ -93,7 +138,10 @@ readonly>
 
 <label>Model</label>
 
-<input type="text" name="model">
+<input
+    type="text"
+    name="model"
+>
 
 </div>
 
@@ -101,7 +149,10 @@ readonly>
 
 <label>Serial Number</label>
 
-<input type="text" name="serial_number">
+<input
+    type="text"
+    name="serial_number"
+>
 
 </div>
 
@@ -109,7 +160,12 @@ readonly>
 
 <label>Acquisition Date</label>
 
-<input type="date" id="acquisitionDate" name="acquisition_date" required>
+<input
+    type="date"
+    id="acquisitionDate"
+    name="acquisition_date"
+    required
+>
 
 </div>
 
@@ -117,7 +173,13 @@ readonly>
 
 <label>Purchase Cost</label>
 
-<input type="number" step="0.01" min="0" name="purchase_cost" required>
+<input
+    type="number"
+    step="0.01"
+    min="0"
+    name="purchase_cost"
+    required
+>
 
 </div>
 
@@ -125,7 +187,10 @@ readonly>
 
 <label>Supplier</label>
 
-<input type="text" name="supplier">
+<input
+    type="text"
+    name="supplier"
+>
 
 </div>
 
@@ -133,7 +198,10 @@ readonly>
 
 <label>Location</label>
 
-<input type="text" name="location">
+<input
+    type="text"
+    name="location"
+>
 
 </div>
 
@@ -146,12 +214,11 @@ readonly>
 </div>
 
 <button type="submit">
-
-Save Asset
-
+    Save Asset
 </button>
 
 </form>
 
 </div>
+
 </div>

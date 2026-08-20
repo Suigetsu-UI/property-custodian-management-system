@@ -1,3 +1,25 @@
+<?php
+
+require_once __DIR__ . "/../../includes/database.php";
+
+$pdo = getDbConnection();
+
+$stmt = $pdo->query(
+    "SELECT
+        id,
+        asset_id,
+        asset_name,
+        category,
+        custodian,
+        status
+     FROM assets
+     ORDER BY id ASC"
+);
+
+$assetRows = $stmt->fetchAll();
+
+?>
+
 <table class="asset-table" id="assetTable">
 
 <thead>
@@ -5,15 +27,10 @@
 <tr>
 
 <th>Asset ID</th>
-
 <th>Asset Name</th>
-
 <th>Category</th>
-
 <th>Custodian</th>
-
 <th>Status</th>
-
 <th>Actions</th>
 
 </tr>
@@ -22,37 +39,43 @@
 
 <tbody>
 
-<?php
-
-$assets = $_SESSION['assets'] ?? [];
-
-?>
-
-<?php foreach($assets as $index => $asset): ?>
+<?php foreach ($assetRows as $asset): ?>
 
 <?php $status = $asset['status'] ?? 'Available'; ?>
 
 <tr class="asset-row">
 
-<td><?= $asset['asset_id']; ?></td>
+<td><?= htmlspecialchars($asset['asset_id']) ?></td>
 
-<td><?= htmlspecialchars($asset['asset_name']); ?></td>
+<td><?= htmlspecialchars($asset['asset_name']) ?></td>
 
-<td class="asset-category"><?= htmlspecialchars($asset['category']); ?></td>
+<td class="asset-category">
+    <?= htmlspecialchars($asset['category']) ?>
+</td>
 
-<td><?= !empty($asset['custodian'])
-    ? htmlspecialchars($asset['custodian'])
-    : 'Not Assigned'; ?></td>
+<td>
+    <?= !empty($asset['custodian'])
+        ? htmlspecialchars($asset['custodian'])
+        : 'Not Assigned' ?>
+</td>
 
-<td class="asset-status"><?= htmlspecialchars($status); ?></td>
+<td class="asset-status">
+    <?= htmlspecialchars($status) ?>
+</td>
 
 <td>
 
-<a href="view_asset.php?id=<?= $index ?>" class="btn btn-primary">
+<a
+    href="view_asset.php?id=<?= (int) $asset['id'] ?>"
+    class="btn btn-primary"
+>
     View
 </a>
 
-<a href="edit_asset.php?id=<?= $index ?>" class="btn btn-warning">
+<a
+    href="edit_asset.php?id=<?= (int) $asset['id'] ?>"
+    class="btn btn-warning"
+>
     Edit
 </a>
 
@@ -66,27 +89,36 @@ $assets = $_SESSION['assets'] ?? [];
 
 <?php elseif ($status === 'Assigned'): ?>
 
-<a href="return_asset.php?id=<?= $index ?>"
-   class="btn btn-warning"
-   onclick="return confirm('Return this asset? It will become Available again.');">
+<a
+    href="return_asset.php?id=<?= (int) $asset['id'] ?>"
+    class="btn btn-warning"
+    onclick="return confirm('Return this asset? It will become Available again.');"
+>
     Return Asset
 </a>
 
-<a href="delete_asset.php?id=<?= $index ?>"
-   class="btn btn-danger"
-   onclick="return confirm('Are you sure you want to delete this asset?');">
+<a
+    href="delete_asset.php?id=<?= (int) $asset['id'] ?>"
+    class="btn btn-danger"
+    onclick="return confirm('Are you sure you want to delete this asset?');"
+>
     Delete
 </a>
 
 <?php else: ?>
 
-<a href="assign_custodian.php?id=<?= $index ?>" class="btn btn-success">
+<a
+    href="assign_custodian.php?id=<?= (int) $asset['id'] ?>"
+    class="btn btn-success"
+>
     Assign
 </a>
 
-<a href="delete_asset.php?id=<?= $index ?>"
-   class="btn btn-danger"
-   onclick="return confirm('Are you sure you want to delete this asset?');">
+<a
+    href="delete_asset.php?id=<?= (int) $asset['id'] ?>"
+    class="btn btn-danger"
+    onclick="return confirm('Are you sure you want to delete this asset?');"
+>
     Delete
 </a>
 
@@ -96,23 +128,14 @@ $assets = $_SESSION['assets'] ?? [];
 
 </tr>
 
-
-
-
 <?php endforeach; ?>
 
-
-
-
-
-<?php if (empty($assets)): ?>
+<?php if (empty($assetRows)): ?>
 
 <tr>
 
 <td colspan="6" style="text-align:center;padding:40px;">
-
-No asset records found.
-
+    No asset records found.
 </td>
 
 </tr>

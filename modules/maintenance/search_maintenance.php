@@ -2,35 +2,27 @@
 
 require_once "../../auth/check_auth.php";
 
-$keyword = strtolower(trim($_GET['search'] ?? ''));
-$status = $_GET['status'] ?? '';
+$search =
+    trim($_GET['search'] ?? '');
 
-$filtered = [];
+$status =
+    trim($_GET['status'] ?? '');
 
-foreach ($_SESSION['maintenance'] ?? [] as $key => $item) {
+$query = http_build_query(
+    array_filter(
+        [
+            'search' => $search,
+            'status' => $status
+        ],
+        static function ($value) {
+            return $value !== '';
+        }
+    )
+);
 
-    $matchKeyword =
-        $keyword === '' ||
+header(
+    "Location: index.php" .
+    ($query !== '' ? '?' . $query : '')
+);
 
-        strpos(strtolower($item['maintenance_id']), $keyword) !== false ||
-
-        strpos(strtolower($item['asset_name']), $keyword) !== false ||
-
-        strpos(strtolower($item['maintenance_type']), $keyword) !== false;
-
-    $matchStatus =
-        $status === '' ||
-        $item['status'] === $status;
-
-    if ($matchKeyword && $matchStatus) {
-
-        $filtered[$key] = $item;
-
-    }
-
-}
-
-$_SESSION['filtered_maintenance'] = $filtered;
-
-header("Location: index.php");
 exit;

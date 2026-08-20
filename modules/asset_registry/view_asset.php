@@ -1,23 +1,45 @@
 <?php
 
-session_start();
+require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/database.php";
 
-if (!isset($_GET['id'])) {
+$id = filter_var(
+    $_GET['id'] ?? null,
+    FILTER_VALIDATE_INT,
+    [
+        'options' => [
+            'min_range' => 1
+        ]
+    ]
+);
+
+if ($id === false) {
     header("Location: index.php");
-    exit();
+    exit;
 }
 
-$id = (int) $_GET['id'];
+$pdo = getDbConnection();
 
-if (!isset($_SESSION['assets'][$id])) {
+$stmt = $pdo->prepare(
+    "SELECT *
+     FROM assets
+     WHERE id = :id"
+);
+
+$stmt->execute([
+    'id' => $id
+]);
+
+$asset = $stmt->fetch();
+
+if (!$asset) {
     header("Location: index.php");
-    exit();
+    exit;
 }
 
-$asset = $_SESSION['assets'][$id];
+include "../../includes/header.php";
+include "../../includes/sidebar.php";
 
-include '../../includes/header.php';
-include '../../includes/sidebar.php';
 ?>
 
 <div class="main-content">
@@ -29,92 +51,98 @@ include '../../includes/sidebar.php';
 <table class="asset-table">
 
 <tr>
-    <th>Asset ID</th>
-    <td><?= htmlspecialchars($asset['asset_id']) ?></td>
+<th>Asset ID</th>
+<td><?= htmlspecialchars($asset['asset_id']) ?></td>
 </tr>
 
 <tr>
-    <th>Asset Name</th>
-    <td><?= htmlspecialchars($asset['asset_name']) ?></td>
+<th>Asset Name</th>
+<td><?= htmlspecialchars($asset['asset_name']) ?></td>
 </tr>
 
 <tr>
-    <th>Category</th>
-    <td><?= htmlspecialchars($asset['category']) ?></td>
+<th>Category</th>
+<td><?= htmlspecialchars($asset['category']) ?></td>
 </tr>
 
 <tr>
-    <th>Status</th>
-    <td><?= htmlspecialchars($asset['status'] ?? 'Available') ?></td>
+<th>Status</th>
+<td><?= htmlspecialchars($asset['status'] ?? 'Available') ?></td>
 </tr>
 
 <tr>
-    <th>Brand</th>
-    <td><?= htmlspecialchars($asset['brand']) ?></td>
+<th>Brand</th>
+<td><?= htmlspecialchars($asset['brand'] ?? '') ?></td>
 </tr>
 
 <tr>
-    <th>Model</th>
-    <td><?= htmlspecialchars($asset['model']) ?></td>
+<th>Model</th>
+<td><?= htmlspecialchars($asset['model'] ?? '') ?></td>
 </tr>
 
 <tr>
-    <th>Serial Number</th>
-    <td><?= htmlspecialchars($asset['serial_number']) ?></td>
+<th>Serial Number</th>
+<td><?= htmlspecialchars($asset['serial_number'] ?? '') ?></td>
 </tr>
 
 <tr>
-    <th>Supplier</th>
-    <td><?= htmlspecialchars($asset['supplier']) ?></td>
+<th>Supplier</th>
+<td><?= htmlspecialchars($asset['supplier'] ?? '') ?></td>
 </tr>
 
 <tr>
-    <th>Location</th>
-    <td><?= htmlspecialchars($asset['location']) ?></td>
+<th>Location</th>
+<td><?= htmlspecialchars($asset['location'] ?? '') ?></td>
 </tr>
 
 <tr>
-    <th>Remarks</th>
-    <td><?= htmlspecialchars($asset['remarks']) ?></td>
-</tr>
-
-
-<tr>
-    <th>Employee ID</th>
-    <td>
-        <?= !empty($asset['employee_id'])
-            ? htmlspecialchars($asset['employee_id'])
-            : 'Not Assigned'; ?>
-    </td>
+<th>Remarks</th>
+<td><?= htmlspecialchars($asset['remarks'] ?? '') ?></td>
 </tr>
 
 <tr>
-    <th>Custodian</th>
-    <td>
-        <?= !empty($asset['custodian'])
-            ? htmlspecialchars($asset['custodian'])
-            : 'Not Assigned'; ?>
-    </td>
+<th>Employee ID</th>
+
+<td>
+<?= !empty($asset['employee_id'])
+    ? htmlspecialchars($asset['employee_id'])
+    : 'Not Assigned' ?>
+</td>
+
 </tr>
 
 <tr>
-    <th>Department</th>
-    <td>
-        <?= !empty($asset['department'])
-            ? htmlspecialchars($asset['department'])
-            : 'Not Assigned'; ?>
-    </td>
+<th>Custodian</th>
+
+<td>
+<?= !empty($asset['custodian'])
+    ? htmlspecialchars($asset['custodian'])
+    : 'Not Assigned' ?>
+</td>
+
 </tr>
 
 <tr>
-    <th>Date Assigned</th>
-    <td>
-        <?= !empty($asset['date_assigned'])
-            ? htmlspecialchars($asset['date_assigned'])
-            : 'Not Assigned'; ?>
-    </td>
+<th>Department</th>
+
+<td>
+<?= !empty($asset['department'])
+    ? htmlspecialchars($asset['department'])
+    : 'Not Assigned' ?>
+</td>
+
 </tr>
 
+<tr>
+<th>Date Assigned</th>
+
+<td>
+<?= !empty($asset['date_assigned'])
+    ? htmlspecialchars($asset['date_assigned'])
+    : 'Not Assigned' ?>
+</td>
+
+</tr>
 
 </table>
 
@@ -126,4 +154,4 @@ include '../../includes/sidebar.php';
 
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<?php include "../../includes/footer.php"; ?>

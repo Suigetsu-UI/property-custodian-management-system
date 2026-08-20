@@ -1,185 +1,388 @@
 <?php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+require_once __DIR__ . "/database.php";
+
+function getAllowedReportTypes(): array
+{
+    return [
+        'Asset Report',
+        'Inventory Report',
+        'Maintenance Report',
+        'Procurement Report',
+        'Audit Report',
+        'Full System Report'
+    ];
 }
 
-function generateProcurementSummary()
+function isAllowedReportType(string $reportType): bool
 {
-    $records = $_SESSION['procurement'] ?? [];
+    return in_array(
+        $reportType,
+        getAllowedReportTypes(),
+        true
+    );
+}
+
+function generateProcurementSummary(): array
+{
+    $pdo = getDbConnection();
+
+    $stmt = $pdo->query(
+        "SELECT
+            COUNT(*) AS total,
+            COUNT(*) FILTER (
+                WHERE status = 'Pending'
+            ) AS pending,
+            COUNT(*) FILTER (
+                WHERE status = 'Approved'
+            ) AS approved,
+            COUNT(*) FILTER (
+                WHERE status = 'Delivered'
+            ) AS delivered,
+            COUNT(*) FILTER (
+                WHERE status = 'Rejected'
+            ) AS rejected
+         FROM procurement"
+    );
+
+    $counts = $stmt->fetch();
 
     $summary = [
-        'total' => count($records),
-        'pending' => 0,
-        'approved' => 0,
-        'delivered' => 0,
-        'rejected' => 0,
+        'total' => (int) ($counts['total'] ?? 0),
+        'pending' => (int) ($counts['pending'] ?? 0),
+        'approved' => (int) ($counts['approved'] ?? 0),
+        'delivered' => (int) ($counts['delivered'] ?? 0),
+        'rejected' => (int) ($counts['rejected'] ?? 0),
         'by_supplier' => [],
         'recent' => []
     ];
 
-    foreach ($records as $item) {
+    $supplierStmt = $pdo->query(
+        "SELECT
+            CASE
+                WHEN supplier IS NULL
+                     OR trim(supplier) = ''
+                THEN 'Unknown'
+                ELSE supplier
+            END AS supplier_name,
+            COUNT(*) AS record_count
+         FROM procurement
+         GROUP BY supplier_name
+         ORDER BY supplier_name ASC"
+    );
 
-        switch ($item['status'] ?? '') {
-            case 'Pending': $summary['pending']++; break;
-            case 'Approved': $summary['approved']++; break;
-            case 'Delivered': $summary['delivered']++; break;
-            case 'Rejected': $summary['rejected']++; break;
-        }
-
-        $supplier = $item['supplier'] ?? 'Unknown';
-        $summary['by_supplier'][$supplier] = ($summary['by_supplier'][$supplier] ?? 0) + 1;
+    foreach ($supplierStmt->fetchAll() as $row) {
+        $summary['by_supplier'][$row['supplier_name']] =
+            (int) $row['record_count'];
     }
 
-    $summary['recent'] = array_slice(array_reverse($records), 0, 5);
+    $recentStmt = $pdo->query(
+        "SELECT
+            procurement_id,
+            item_name,
+            quantity,
+            supplier,
+            status
+         FROM procurement
+         ORDER BY id DESC
+         LIMIT 5"
+    );
+
+    $summary['recent'] =
+        $recentStmt->fetchAll();
 
     return $summary;
 }
 
-function generateInventorySummary()
+function generateInventorySummary(): array
 {
-    $items = $_SESSION['inventory'] ?? [];
-    $procurement = $_SESSION['procurement'] ?? [];
+    $pdo = getDbConnection();
+
+    $stmt = $pdo->query(
+        "SELECT
+            COUNT(*) AS total_items,
+            COALESCE(SUM(quantity), 0) AS total_stock,
+            COUNT(*) FILTER (
+                WHERE quantity BETWEEN 1 AND 3
+            ) AS low_stock,
+            COUNT(*) FILTER (
+                WHERE quantity = 0
+            ) AS out_of_stock,
+            COUNT(*) FILTER (
+                WHERE quantity > 0
+            ) AS ready_for_registration
+         FROM inventory"
+    );
+
+    $counts = $stmt->fetch();
 
     $summary = [
-        'total_items' => count($items),
-        'total_stock' => 0,
-        'low_stock' => 0,
-        'out_of_stock' => 0,
-        'ready_for_registration' => 0,
+        'total_items' =>
+            (int) ($counts['total_items'] ?? 0),
+
+        'total_stock' =>
+            (int) ($counts['total_stock'] ?? 0),
+
+        'low_stock' =>
+            (int) ($counts['low_stock'] ?? 0),
+
+        'out_of_stock' =>
+            (int) ($counts['out_of_stock'] ?? 0),
+
+        'ready_for_registration' =>
+            (int) ($counts['ready_for_registration'] ?? 0),
+
         'recently_delivered' => []
     ];
 
-    foreach ($items as $item) {
+    $recentStmt = $pdo->query(
+        "SELECT
+            procurement_id,
+            item_name,
+            category,
+            quantity,
+            status
+         FROM procurement
+         WHERE status = 'Delivered'
+         ORDER BY id DESC
+         LIMIT 5"
+    );
 
-        $qty = (int) ($item['quantity'] ?? 0);
-        $summary['total_stock'] += $qty;
-
-        if ($qty === 0) {
-            $summary['out_of_stock']++;
-        } elseif ($qty <= 3) {
-            $summary['low_stock']++;
-        }
-
-        if ($qty > 0) {
-            $summary['ready_for_registration']++;
-        }
-    }
-
-    $delivered = array_values(array_filter($procurement, function ($p) {
-        return ($p['status'] ?? '') === 'Delivered';
-    }));
-
-    $summary['recently_delivered'] = array_slice(array_reverse($delivered), 0, 5);
+    $summary['recently_delivered'] =
+        $recentStmt->fetchAll();
 
     return $summary;
 }
 
-function generateAssetSummary()
+function generateAssetSummary(): array
 {
-    $assets = $_SESSION['assets'] ?? [];
+    $pdo = getDbConnection();
+
+    $stmt = $pdo->query(
+        "SELECT
+            COUNT(*) AS total,
+            COUNT(*) FILTER (
+                WHERE status = 'Available'
+            ) AS available,
+            COUNT(*) FILTER (
+                WHERE status = 'Assigned'
+            ) AS assigned,
+            COUNT(*) FILTER (
+                WHERE status = 'Under Maintenance'
+            ) AS under_maintenance,
+            COUNT(*) FILTER (
+                WHERE status = 'Lost'
+            ) AS lost
+         FROM assets"
+    );
+
+    $counts = $stmt->fetch();
 
     $summary = [
-        'total' => count($assets),
-        'available' => 0,
-        'assigned' => 0,
-        'under_maintenance' => 0,
-        'lost' => 0,
+        'total' =>
+            (int) ($counts['total'] ?? 0),
+
+        'available' =>
+            (int) ($counts['available'] ?? 0),
+
+        'assigned' =>
+            (int) ($counts['assigned'] ?? 0),
+
+        'under_maintenance' =>
+            (int) ($counts['under_maintenance'] ?? 0),
+
+        'lost' =>
+            (int) ($counts['lost'] ?? 0),
+
         'by_category' => [],
         'by_location' => [],
         'by_custodian' => []
     ];
 
-    foreach ($assets as $asset) {
+    $categoryStmt = $pdo->query(
+        "SELECT
+            CASE
+                WHEN category IS NULL
+                     OR trim(category) = ''
+                THEN 'Uncategorized'
+                ELSE category
+            END AS category_name,
+            COUNT(*) AS record_count
+         FROM assets
+         GROUP BY category_name
+         ORDER BY category_name ASC"
+    );
 
-        switch ($asset['status'] ?? 'Available') {
-            case 'Available': $summary['available']++; break;
-            case 'Assigned': $summary['assigned']++; break;
-            case 'Under Maintenance': $summary['under_maintenance']++; break;
-            case 'Lost': $summary['lost']++; break;
-        }
+    foreach ($categoryStmt->fetchAll() as $row) {
+        $summary['by_category'][$row['category_name']] =
+            (int) $row['record_count'];
+    }
 
-        $category = $asset['category'] ?? 'Uncategorized';
-        $summary['by_category'][$category] = ($summary['by_category'][$category] ?? 0) + 1;
+    $locationStmt = $pdo->query(
+        "SELECT
+            CASE
+                WHEN location IS NULL
+                     OR trim(location) = ''
+                THEN 'Unspecified'
+                ELSE location
+            END AS location_name,
+            COUNT(*) AS record_count
+         FROM assets
+         GROUP BY location_name
+         ORDER BY location_name ASC"
+    );
 
-        $location = !empty($asset['location']) ? $asset['location'] : 'Unspecified';
-        $summary['by_location'][$location] = ($summary['by_location'][$location] ?? 0) + 1;
+    foreach ($locationStmt->fetchAll() as $row) {
+        $summary['by_location'][$row['location_name']] =
+            (int) $row['record_count'];
+    }
 
-        if (!empty($asset['custodian'])) {
-            $summary['by_custodian'][$asset['custodian']] = ($summary['by_custodian'][$asset['custodian']] ?? 0) + 1;
-        }
+    $custodianStmt = $pdo->query(
+        "SELECT
+            custodian,
+            COUNT(*) AS record_count
+         FROM assets
+         WHERE custodian IS NOT NULL
+           AND trim(custodian) <> ''
+         GROUP BY custodian
+         ORDER BY custodian ASC"
+    );
+
+    foreach ($custodianStmt->fetchAll() as $row) {
+        $summary['by_custodian'][$row['custodian']] =
+            (int) $row['record_count'];
     }
 
     return $summary;
 }
 
-function generateMaintenanceSummary()
+function generateMaintenanceSummary(): array
 {
-    $records = $_SESSION['maintenance'] ?? [];
+    $pdo = getDbConnection();
+
+    $stmt = $pdo->query(
+        "SELECT
+            COUNT(*) AS total,
+            COUNT(*) FILTER (
+                WHERE status = 'Scheduled'
+            ) AS scheduled,
+            COUNT(*) FILTER (
+                WHERE status = 'In Progress'
+            ) AS in_progress,
+            COUNT(*) FILTER (
+                WHERE status = 'Completed'
+            ) AS completed,
+            COUNT(*) FILTER (
+                WHERE status <> 'Completed'
+            ) AS currently_under_maintenance
+         FROM maintenance"
+    );
+
+    $counts = $stmt->fetch();
 
     $summary = [
-        'total' => count($records),
-        'scheduled' => 0,
-        'in_progress' => 0,
-        'completed' => 0,
-        'currently_under_maintenance' => 0,
+        'total' =>
+            (int) ($counts['total'] ?? 0),
+
+        'scheduled' =>
+            (int) ($counts['scheduled'] ?? 0),
+
+        'in_progress' =>
+            (int) ($counts['in_progress'] ?? 0),
+
+        'completed' =>
+            (int) ($counts['completed'] ?? 0),
+
+        'currently_under_maintenance' =>
+            (int) ($counts['currently_under_maintenance'] ?? 0),
+
         'recent' => []
     ];
 
-    foreach ($records as $item) {
+    $recentStmt = $pdo->query(
+        "SELECT
+            maintenance_id,
+            asset_name_snap AS asset_name,
+            maintenance_type,
+            scheduled_date,
+            status
+         FROM maintenance
+         ORDER BY id DESC
+         LIMIT 5"
+    );
 
-        switch ($item['status'] ?? '') {
-            case 'Scheduled':
-                $summary['scheduled']++;
-                $summary['currently_under_maintenance']++;
-                break;
-            case 'In Progress':
-                $summary['in_progress']++;
-                $summary['currently_under_maintenance']++;
-                break;
-            case 'Completed':
-                $summary['completed']++;
-                break;
-        }
-    }
-
-    $summary['recent'] = array_slice(array_reverse($records), 0, 5);
+    $summary['recent'] =
+        $recentStmt->fetchAll();
 
     return $summary;
 }
 
-function generateAuditSummary()
+function generateAuditSummary(): array
 {
-    $records = $_SESSION['audits'] ?? [];
+    $pdo = getDbConnection();
+
+    $stmt = $pdo->query(
+        "SELECT
+            COUNT(*) AS total,
+            COUNT(*) FILTER (
+                WHERE status = 'Completed'
+            ) AS completed,
+            COUNT(*) FILTER (
+                WHERE status <> 'Completed'
+            ) AS pending
+         FROM audits"
+    );
+
+    $counts = $stmt->fetch();
 
     $summary = [
-        'total' => count($records),
-        'completed' => 0,
-        'pending' => 0,
+        'total' =>
+            (int) ($counts['total'] ?? 0),
+
+        'completed' =>
+            (int) ($counts['completed'] ?? 0),
+
+        'pending' =>
+            (int) ($counts['pending'] ?? 0),
+
         'recent' => []
     ];
 
-    foreach ($records as $item) {
+    $recentStmt = $pdo->query(
+        "SELECT
+            audit_id,
+            asset_name_snap AS asset_name,
+            auditor,
+            audit_date,
+            status,
+            result
+         FROM audits
+         ORDER BY id DESC
+         LIMIT 5"
+    );
 
-        if (($item['status'] ?? '') === 'Completed') {
-            $summary['completed']++;
-        } else {
-            $summary['pending']++;
-        }
-    }
-
-    $summary['recent'] = array_slice(array_reverse($records), 0, 5);
+    $summary['recent'] =
+        $recentStmt->fetchAll();
 
     return $summary;
 }
 
-function generateFullSystemSummary()
+function generateFullSystemSummary(): array
 {
     return [
-        'procurement' => generateProcurementSummary(),
-        'inventory' => generateInventorySummary(),
-        'assets' => generateAssetSummary(),
-        'maintenance' => generateMaintenanceSummary(),
-        'audit' => generateAuditSummary()
+        'procurement' =>
+            generateProcurementSummary(),
+
+        'inventory' =>
+            generateInventorySummary(),
+
+        'assets' =>
+            generateAssetSummary(),
+
+        'maintenance' =>
+            generateMaintenanceSummary(),
+
+        'audit' =>
+            generateAuditSummary()
     ];
 }

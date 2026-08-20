@@ -1,69 +1,195 @@
-<table class="asset-table" id="auditTable">
+<?php
 
-    <thead>
+require_once __DIR__ . "/../../includes/database.php";
 
-        <tr>
+$pdo = getDbConnection();
 
-            <th>Audit ID</th>
-            <th>Asset</th>
-            <th>Auditor</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Result</th>
-            <th>Actions</th>
+$keyword =
+    trim($_GET['search'] ?? '');
 
-        </tr>
+$statusParam =
+    trim($_GET['status'] ?? '');
 
-    </thead>
+$resultParam =
+    trim($_GET['result'] ?? '');
 
-    <tbody>
+$sql =
+    "SELECT
+        au.id,
+        au.audit_id,
+        au.asset_name_snap,
+        au.auditor,
+        au.audit_date,
+        au.status,
+        au.result,
+        a.asset_id AS asset_business_id
+     FROM audits au
+     JOIN assets a
+       ON a.id = au.asset_id
+     WHERE 1=1";
 
-        <?php
+$params = [];
 
-        $audits = $_SESSION['filtered_audits']
-            ?? $_SESSION['audits']
-            ?? [];
+if ($keyword !== '') {
 
-        unset($_SESSION['filtered_audits']);
+    $searchValue =
+        '%' . strtolower($keyword) . '%';
 
-        foreach ($audits as $index => $item):
+    $sql .=
+        " AND (
+            lower(au.audit_id)
+                LIKE :kw_audit_id
+            OR lower(a.asset_id)
+                LIKE :kw_asset_id
+            OR lower(au.asset_name_snap)
+                LIKE :kw_asset_name
+            OR lower(au.auditor)
+                LIKE :kw_auditor
+            OR lower(au.status)
+                LIKE :kw_status
+            OR lower(au.result)
+                LIKE :kw_result
+          )";
 
-        ?>
+    $params['kw_audit_id'] =
+        $searchValue;
 
-        <tr class="audit-row">
+    $params['kw_asset_id'] =
+        $searchValue;
 
-            <td><?= htmlspecialchars($item['audit_id']); ?></td>
-            <td><?= htmlspecialchars($item['asset_name']); ?></td>
-            <td><?= htmlspecialchars($item['auditor']); ?></td>
-            <td><?= htmlspecialchars($item['audit_date']); ?></td>
-            <td><?= htmlspecialchars($item['status']); ?></td>
-            <td><?= htmlspecialchars($item['result']); ?></td>
-            <td>
+    $params['kw_asset_name'] =
+        $searchValue;
 
-                <a href="view_audit.php?id=<?= $index ?>" class="btn btn-primary">View</a>
-                <a href="edit_audit.php?id=<?= $index ?>" class="btn btn-warning">Edit</a>
-                <a href="delete_audit.php?id=<?= $index ?>" class="btn btn-danger" onclick="return confirm('Delete this audit record?');">Delete</a>
+    $params['kw_auditor'] =
+        $searchValue;
 
-            </td>
+    $params['kw_status'] =
+        $searchValue;
 
-        </tr>
+    $params['kw_result'] =
+        $searchValue;
+}
 
-        <?php endforeach; ?>
+if ($statusParam !== '') {
+    $sql .= " AND au.status = :status";
 
-        <?php if (empty($audits)): ?>
+    $params['status'] =
+        $statusParam;
+}
 
-        <tr>
+if ($resultParam !== '') {
+    $sql .= " AND au.result = :result";
 
-            <td colspan="7" style="text-align:center; padding:40px;">
+    $params['result'] =
+        $resultParam;
+}
 
-                No audit records found.
+$sql .= " ORDER BY au.id ASC";
 
-            </td>
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 
-        </tr>
+$auditRows =
+    $stmt->fetchAll();
 
-        <?php endif; ?>
+?>
 
-    </tbody>
+<table
+    class="asset-table"
+    id="auditTable"
+>
+
+<thead>
+
+<tr>
+
+<th>Audit ID</th>
+<th>Asset</th>
+<th>Auditor</th>
+<th>Date</th>
+<th>Status</th>
+<th>Result</th>
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<?php foreach ($auditRows as $item): ?>
+
+<tr class="audit-row">
+
+<td>
+<?= htmlspecialchars($item['audit_id']) ?>
+</td>
+
+<td>
+<?= htmlspecialchars($item['asset_name_snap']) ?>
+</td>
+
+<td>
+<?= htmlspecialchars($item['auditor']) ?>
+</td>
+
+<td>
+<?= htmlspecialchars($item['audit_date'] ?? '') ?>
+</td>
+
+<td>
+<?= htmlspecialchars($item['status']) ?>
+</td>
+
+<td>
+<?= htmlspecialchars($item['result']) ?>
+</td>
+
+<td>
+
+<a
+    href="view_audit.php?id=<?= (int) $item['id'] ?>"
+    class="btn btn-primary"
+>
+View
+</a>
+
+<a
+    href="edit_audit.php?id=<?= (int) $item['id'] ?>"
+    class="btn btn-warning"
+>
+Edit
+</a>
+
+<a
+    href="delete_audit.php?id=<?= (int) $item['id'] ?>"
+    class="btn btn-danger"
+    onclick="return confirm('Delete this audit record?');"
+>
+Delete
+</a>
+
+</td>
+
+</tr>
+
+<?php endforeach; ?>
+
+<?php if (empty($auditRows)): ?>
+
+<tr>
+
+<td
+    colspan="7"
+    style="text-align:center; padding:40px;"
+>
+No audit records found.
+</td>
+
+</tr>
+
+<?php endif; ?>
+
+</tbody>
 
 </table>

@@ -2,32 +2,31 @@
 
 require_once "../../auth/check_auth.php";
 
-$keyword = strtolower(trim($_GET['search'] ?? ''));
-$status = $_GET['status'] ?? '';
-$result = $_GET['result'] ?? '';
+$search =
+    trim($_GET['search'] ?? '');
 
-$filtered = [];
+$status =
+    trim($_GET['status'] ?? '');
 
-foreach ($_SESSION['audits'] ?? [] as $item) {
+$result =
+    trim($_GET['result'] ?? '');
 
-    $matchKeyword =
-        $keyword === '' ||
-        strpos(strtolower($item['audit_id']), $keyword) !== false ||
-        strpos(strtolower($item['asset_id'] ?? ''), $keyword) !== false ||
-        strpos(strtolower($item['asset_name']), $keyword) !== false ||
-        strpos(strtolower($item['auditor']), $keyword) !== false ||
-        strpos(strtolower($item['status']), $keyword) !== false ||
-        strpos(strtolower($item['result']), $keyword) !== false;
+$query = http_build_query(
+    array_filter(
+        [
+            'search' => $search,
+            'status' => $status,
+            'result' => $result
+        ],
+        static function ($value) {
+            return $value !== '';
+        }
+    )
+);
 
-    $matchStatus = $status === '' || $item['status'] === $status;
-    $matchResult = $result === '' || $item['result'] === $result;
+header(
+    "Location: index.php" .
+    ($query !== '' ? '?' . $query : '')
+);
 
-    if ($matchKeyword && $matchStatus && $matchResult) {
-        $filtered[] = $item;
-    }
-}
-
-$_SESSION['filtered_audits'] = $filtered;
-
-header("Location: index.php");
 exit;

@@ -1,17 +1,49 @@
 <?php
 
 require_once "../../auth/check_auth.php";
-require_once "../../includes/asset_functions.php";
-include "../../includes/header.php";
+require_once __DIR__ . "/../../includes/database.php";
 
-$id = isset($_GET['id']) ? (int) $_GET['id'] : null;
+$idRaw = $_GET['id'] ?? null;
 
-if ($id === null || !isset($_SESSION['inventory'][$id])) {
+$id = filter_var(
+    $idRaw,
+    FILTER_VALIDATE_INT,
+    [
+        'options' => [
+            'min_range' => 1
+        ]
+    ]
+);
+
+if ($id === false) {
     header("Location: index.php");
     exit;
 }
 
-$inventory = $_SESSION['inventory'][$id];
+$pdo = getDbConnection();
+
+$stmt = $pdo->prepare(
+    "SELECT *
+     FROM inventory
+     WHERE id = :id"
+);
+
+$stmt->execute([
+    'id' => $id
+]);
+
+$inventory = $stmt->fetch();
+
+if (!$inventory) {
+    header("Location: index.php");
+    exit;
+}
+
+/*
+ * Header is intentionally included only after the
+ * not-found redirect decision.
+ */
+include "../../includes/header.php";
 
 ?>
 

@@ -1,58 +1,318 @@
 <?php
 
 require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/database.php";
 require_once __DIR__ . "/../../includes/asset_functions.php";
 
-include "../../includes/header.php";
+$pdo = null;
 
-if (!isset($_SESSION['audits'])) {
-    $_SESSION['audits'] = [];
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-$id = null;
+    $auditBusinessId =
+        trim($_POST['audit_id'] ?? '');
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $validId =
+        preg_match(
+            '/^AUD-\d{6}$/',
+            $auditBusinessId
+        ) === 1;
 
-    $assetId = trim($_POST["asset_id"] ?? '');
-    $linkedAsset = $assetId !== '' ? getAssetByID($assetId) : null;
-    $result = $_POST["result"];
+    $issuedToSession =
+        isset(
+            $_SESSION['pending_audit_ids'][$auditBusinessId]
+        );
 
-    $_SESSION['audits'][] = [
-        "audit_id" => $_POST["audit_id"] ?? generateAuditID(),
-        "asset_id" => $assetId,
-        "asset_name" => $linkedAsset['asset_name'] ?? '',
-        "category" => $linkedAsset['category'] ?? '',
-        "custodian" => $linkedAsset['custodian'] ?? '',
-        "auditor" => $_POST["auditor"],
-        "audit_date" => $_POST["audit_date"],
-        "result" => $result,
-        "remarks" => $_POST["remarks"] ?? '',
-        "status" => $_POST["status"]
+    if (!$validId || !$issuedToSession) {
+        header("Location: index.php?error=invalid_id");
+        exit;
+    }
+
+    $assetId = filter_var(
+        $_POST['asset_id'] ?? null,
+        FILTER_VALIDATE_INT,
+        [
+            'options' => [
+                'min_range' => 1
+            ]
+        ]
+    );
+
+    if ($assetId === false) {
+        header("Location: index.php?error=asset");
+        exit;
+    }
+
+    $auditor =
+        trim($_POST['auditor'] ?? '');
+
+    $auditDate =
+        trim($_POST['audit_date'] ?? '');
+
+    $result =
+        trim($_POST['result'] ?? '');
+
+    $remarks =
+        trim($_POST['remarks'] ?? '');
+
+    $status =
+        trim($_POST['status'] ?? '');
+
+    $allowedResults = [
+        'Verified',
+        'Missing',
+        'Damaged',
+        'For Investigation'
     ];
 
-    if ($assetId !== '') {
-        updateAssetStatusFromAudit($assetId, $result);
+    $allowedStatuses = [
+        'Scheduled',
+        'Ongoing',
+        'Completed'
+    ];
+
+    if (
+        $auditor === '' ||
+        $auditDate === '' ||
+        !in_array($result, $allowedResults, true) ||
+        !in_array($status, $allowedStatuses, true)
+    ) {
+        header("Location: index.php?error=save_failed");
+        exit;
+    }
+
+    $createdAuditId = null;
+
+    try {
+        $pdo = getDbConnection();
+
+        $pdo->beginTransaction();
+
+        /*
+         * Asset Registry is the current authoritative Asset record.
+         */
+        $assetStmt = $pdo->prepare(
+            "SELECT
+                id,
+                asset_name,
+                category,
+                custodian,
+                status
+             FROM assets
+             WHERE id = :id
+             FOR UPDATE"
+        );
+
+        $assetStmt->execute([
+            'id' => $assetId
+        ]);
+
+        $asset = $assetStmt->fetch();
+
+        if (!$asset) {
+            $pdo->rollBack();
+
+            header("Location: index.php?error=asset");
+            exit;
+        }
+
+        /*
+         * Preserve current Asset values as the historical Audit snapshot.
+         */
+        $insert = $pdo->prepare(
+            "INSERT INTO audits (
+                audit_id,
+                asset_id,
+                asset_name_snap,
+                category_snap,
+                custodian_snap,
+                auditor,
+                audit_date,
+                result,
+                remarks,
+                status
+             )
+             VALUES (
+                :audit_id,
+                :asset_id,
+                :asset_name_snap,
+                :category_snap,
+                :custodian_snap,
+                :auditor,
+                :audit_date,
+                :result,
+                :remarks,
+                :status
+             )"
+        );
+
+        $insert->execute([
+            'audit_id' => $auditBusinessId,
+            'asset_id' => $asset['id'],
+            'asset_name_snap' => $asset['asset_name'],
+            'category_snap' => $asset['category'],
+            'custodian_snap' => $asset['custodian'],
+            'auditor' => $auditor,
+            'audit_date' => $auditDate,
+            'result' => $result,
+            'remarks' => $remarks,
+            'status' => $status
+        ]);
+
+        /*
+         * Existing business behavior:
+         *
+         * Missing  -> Lost
+         * Damaged  -> Under Maintenance
+         * Verified -> Assigned/Available unless Maintenance owns status
+         * For Investigation -> keep current status
+         */
+        $activeMaintenanceStmt = $pdo->prepare(
+            "SELECT 1
+             FROM maintenance
+             WHERE asset_id = :asset_id
+               AND status <> 'Completed'
+             LIMIT 1"
+        );
+
+        $activeMaintenanceStmt->execute([
+            'asset_id' => $asset['id']
+        ]);
+
+        $hasActiveMaintenance =
+            (bool) $activeMaintenanceStmt->fetch();
+
+        $newAssetStatus = null;
+
+        if (
+            $hasActiveMaintenance &&
+            in_array(
+                $result,
+                ['Verified', 'For Investigation'],
+                true
+            )
+        ) {
+            /*
+             * Maintenance owns Under Maintenance.
+             * Do not override it with a normal Audit result.
+             */
+            $newAssetStatus = null;
+
+        } else {
+            switch ($result) {
+
+                case 'Missing':
+                    $newAssetStatus = 'Lost';
+                    break;
+
+                case 'Damaged':
+                    $newAssetStatus = 'Under Maintenance';
+                    break;
+
+                case 'Verified':
+                    $newAssetStatus =
+                        !empty($asset['custodian'])
+                            ? 'Assigned'
+                            : 'Available';
+                    break;
+
+                case 'For Investigation':
+                default:
+                    $newAssetStatus = null;
+                    break;
+            }
+        }
+
+        if ($newAssetStatus !== null) {
+            $updateAsset = $pdo->prepare(
+                "UPDATE assets
+                 SET
+                    status = :status,
+                    updated_at = now()
+                 WHERE id = :id"
+            );
+
+            $updateAsset->execute([
+                'status' => $newAssetStatus,
+                'id' => $asset['id']
+            ]);
+        }
+
+        $createdAuditId =
+            $auditBusinessId;
+
+        $pdo->commit();
+
+        unset(
+            $_SESSION['pending_audit_ids'][$createdAuditId]
+        );
+
+        if (
+            isset($_SESSION['pending_audit_ids']) &&
+            empty($_SESSION['pending_audit_ids'])
+        ) {
+            unset($_SESSION['pending_audit_ids']);
+        }
+
+    } catch (Throwable $e) {
+
+        if (
+            $pdo instanceof PDO &&
+            $pdo->inTransaction()
+        ) {
+            $pdo->rollBack();
+        }
+
+        header("Location: index.php?error=save_failed");
+        exit;
     }
 
     header("Location: index.php");
     exit;
 }
 
+/*
+ * Standalone GET Add route.
+ *
+ * The modal obtains its ID from next_audit_id.php instead.
+ */
+try {
+    $pdo = getDbConnection();
+
+    $auditIdForForm =
+        nextBusinessId(
+            $pdo,
+            'audit',
+            'AUD'
+        );
+
+    if (!isset($_SESSION['pending_audit_ids'])) {
+        $_SESSION['pending_audit_ids'] = [];
+    }
+
+    $_SESSION['pending_audit_ids'][$auditIdForForm] = true;
+
+} catch (Throwable $e) {
+    header("Location: index.php?error=save_failed");
+    exit;
+}
+
+include "../../includes/header.php";
+
 ?>
 
 <div class="layout">
 
-    <?php include "../../includes/sidebar.php"; ?>
+<?php include "../../includes/sidebar.php"; ?>
 
-    <div class="main-content">
+<div class="main-content">
 
-        <h1>Schedule Audit</h1>
+<h1>Schedule Audit</h1>
 
-        <hr>
+<hr>
 
-        <?php include "audit_form.php"; ?>
+<?php include "audit_form.php"; ?>
 
-    </div>
+</div>
 
 </div>
 

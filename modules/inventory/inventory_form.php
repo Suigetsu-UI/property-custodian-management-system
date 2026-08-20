@@ -1,8 +1,18 @@
+<?php
+
+$isEdit = isset($id) && $id !== null;
+
+?>
+
 <form method="POST" action="save_inventory.php">
 
-<input type="hidden" name="id" value="<?= htmlspecialchars((string) ($id ?? '')) ?>">
+<input
+    type="hidden"
+    name="id"
+    value="<?= htmlspecialchars((string) ($id ?? '')) ?>"
+>
 
-<h2><?= isset($id) && $id !== null ? 'Edit Inventory' : 'Add Inventory' ?></h2>
+<h2><?= $isEdit ? 'Edit Inventory' : 'Add Inventory' ?></h2>
 
 <div class="form-row">
 
@@ -12,7 +22,7 @@
     type="text"
     id="inventoryID"
     name="inventory_id"
-    value="<?= htmlspecialchars(($inventory['inventory_id'] ?? generateInventoryID())) ?>"
+    value="<?= htmlspecialchars($inventory['inventory_id'] ?? '') ?>"
     readonly
 >
 
@@ -37,10 +47,21 @@
 
 <select name="category">
 
-<option <?= (($inventory['category'] ?? '') == 'Computer') ? 'selected' : '' ?>>Computer</option>
-<option <?= (($inventory['category'] ?? '') == 'Furniture') ? 'selected' : '' ?>>Furniture</option>
-<option <?= (($inventory['category'] ?? '') == 'Office Equipment') ? 'selected' : '' ?>>Office Equipment</option>
-<option <?= (($inventory['category'] ?? '') == 'Electronics') ? 'selected' : '' ?>>Electronics</option>
+<option <?= (($inventory['category'] ?? '') === 'Computer') ? 'selected' : '' ?>>
+    Computer
+</option>
+
+<option <?= (($inventory['category'] ?? '') === 'Furniture') ? 'selected' : '' ?>>
+    Furniture
+</option>
+
+<option <?= (($inventory['category'] ?? '') === 'Office Equipment') ? 'selected' : '' ?>>
+    Office Equipment
+</option>
+
+<option <?= (($inventory['category'] ?? '') === 'Electronics') ? 'selected' : '' ?>>
+    Electronics
+</option>
 
 </select>
 
@@ -53,8 +74,8 @@
 <input
     type="number"
     name="quantity"
-    min="1"
-    value="<?= $inventory['quantity'] ?? 1; ?>"
+    min="<?= $isEdit ? '0' : '1' ?>"
+    value="<?= htmlspecialchars((string) ($inventory['quantity'] ?? 1)) ?>"
     required
 >
 
@@ -66,19 +87,28 @@
 
 <select name="condition">
 
-<option <?= (($inventory['condition'] ?? '') == 'Good') ? 'selected' : '' ?>>Good</option>
-<option <?= (($inventory['condition'] ?? '') == 'Fair') ? 'selected' : '' ?>>Fair</option>
-<option <?= (($inventory['condition'] ?? '') == 'Needs Repair') ? 'selected' : '' ?>>Needs Repair</option>
-<option <?= (($inventory['condition'] ?? '') == 'Unserviceable') ? 'selected' : '' ?>>Unserviceable</option>
+<option <?= (($inventory['condition'] ?? '') === 'Good') ? 'selected' : '' ?>>
+    Good
+</option>
+
+<option <?= (($inventory['condition'] ?? '') === 'Fair') ? 'selected' : '' ?>>
+    Fair
+</option>
+
+<option <?= (($inventory['condition'] ?? '') === 'Needs Repair') ? 'selected' : '' ?>>
+    Needs Repair
+</option>
+
+<option <?= (($inventory['condition'] ?? '') === 'Unserviceable') ? 'selected' : '' ?>>
+    Unserviceable
+</option>
 
 </select>
 
 </div>
 
 <button type="submit" class="btn btn-primary">
-
-<?= isset($id) && $id !== null ? "Update Inventory" : "Save Inventory"; ?>
-
+    <?= $isEdit ? 'Update Inventory' : 'Save Inventory' ?>
 </button>
 
 </form>

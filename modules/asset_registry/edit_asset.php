@@ -1,27 +1,44 @@
 <?php
 
-session_start();
+require_once "../../auth/check_auth.php";
+require_once __DIR__ . "/../../includes/database.php";
 
-if (!isset($_GET['id'])) {
+$id = filter_var(
+    $_GET['id'] ?? null,
+    FILTER_VALIDATE_INT,
+    [
+        'options' => [
+            'min_range' => 1
+        ]
+    ]
+);
 
+if ($id === false) {
     header("Location: index.php");
-    exit();
-
+    exit;
 }
 
-$id = (int) $_GET['id'];
+$pdo = getDbConnection();
 
-if (!isset($_SESSION['assets'][$id])) {
+$stmt = $pdo->prepare(
+    "SELECT *
+     FROM assets
+     WHERE id = :id"
+);
 
+$stmt->execute([
+    'id' => $id
+]);
+
+$asset = $stmt->fetch();
+
+if (!$asset) {
     header("Location: index.php");
-    exit();
-
+    exit;
 }
 
-$asset = $_SESSION['assets'][$id];
-
-include '../../includes/header.php';
-include '../../includes/sidebar.php';
+include "../../includes/header.php";
+include "../../includes/sidebar.php";
 
 ?>
 
@@ -32,18 +49,20 @@ include '../../includes/sidebar.php';
 <hr><br>
 
 <form
-method="POST"
-action="update_asset.php?id=<?= $id ?>"
-class="asset-form">
+    method="POST"
+    action="update_asset.php?id=<?= (int) $id ?>"
+    class="asset-form"
+>
 
 <div class="form-row">
 
 <label>Asset ID</label>
 
 <input
-type="text"
-value="<?= htmlspecialchars($asset['asset_id']) ?>"
-readonly>
+    type="text"
+    value="<?= htmlspecialchars($asset['asset_id']) ?>"
+    readonly
+>
 
 </div>
 
@@ -52,10 +71,11 @@ readonly>
 <label>Asset Name</label>
 
 <input
-type="text"
-name="asset_name"
-value="<?= htmlspecialchars($asset['asset_name']) ?>"
-required>
+    type="text"
+    name="asset_name"
+    value="<?= htmlspecialchars($asset['asset_name']) ?>"
+    required
+>
 
 </div>
 
@@ -67,25 +87,26 @@ required>
 
 <?php
 
-$categories=[
-"Computer",
-"Furniture",
-"Laboratory Equipment",
-"Office Equipment"
+$categories = [
+    'Computer',
+    'Furniture',
+    'Laboratory Equipment',
+    'Office Equipment',
+    'Electronics'
 ];
 
-foreach($categories as $category){
-
-$selected =
-($asset['category']==$category)
-? "selected"
-: "";
-
-echo "<option $selected>$category</option>";
-
-}
+foreach ($categories as $category):
 
 ?>
+
+<option
+    value="<?= htmlspecialchars($category) ?>"
+    <?= $asset['category'] === $category ? 'selected' : '' ?>
+>
+    <?= htmlspecialchars($category) ?>
+</option>
+
+<?php endforeach; ?>
 
 </select>
 
@@ -96,9 +117,10 @@ echo "<option $selected>$category</option>";
 <label>Brand</label>
 
 <input
-type="text"
-name="brand"
-value="<?= htmlspecialchars($asset['brand']) ?>">
+    type="text"
+    name="brand"
+    value="<?= htmlspecialchars($asset['brand'] ?? '') ?>"
+>
 
 </div>
 
@@ -107,9 +129,10 @@ value="<?= htmlspecialchars($asset['brand']) ?>">
 <label>Model</label>
 
 <input
-type="text"
-name="model"
-value="<?= htmlspecialchars($asset['model']) ?>">
+    type="text"
+    name="model"
+    value="<?= htmlspecialchars($asset['model'] ?? '') ?>"
+>
 
 </div>
 
@@ -118,9 +141,10 @@ value="<?= htmlspecialchars($asset['model']) ?>">
 <label>Serial Number</label>
 
 <input
-type="text"
-name="serial_number"
-value="<?= htmlspecialchars($asset['serial_number']) ?>">
+    type="text"
+    name="serial_number"
+    value="<?= htmlspecialchars($asset['serial_number'] ?? '') ?>"
+>
 
 </div>
 
@@ -129,9 +153,10 @@ value="<?= htmlspecialchars($asset['serial_number']) ?>">
 <label>Supplier</label>
 
 <input
-type="text"
-name="supplier"
-value="<?= htmlspecialchars($asset['supplier']) ?>">
+    type="text"
+    name="supplier"
+    value="<?= htmlspecialchars($asset['supplier'] ?? '') ?>"
+>
 
 </div>
 
@@ -140,9 +165,10 @@ value="<?= htmlspecialchars($asset['supplier']) ?>">
 <label>Location</label>
 
 <input
-type="text"
-name="location"
-value="<?= htmlspecialchars($asset['location']) ?>">
+    type="text"
+    name="location"
+    value="<?= htmlspecialchars($asset['location'] ?? '') ?>"
+>
 
 </div>
 
@@ -150,31 +176,28 @@ value="<?= htmlspecialchars($asset['location']) ?>">
 
 <label>Remarks</label>
 
-<textarea
-name="remarks"><?= htmlspecialchars($asset['remarks']) ?></textarea>
+<textarea name="remarks"><?= htmlspecialchars($asset['remarks'] ?? '') ?></textarea>
 
 </div>
 
 <br>
 
 <button
-class="btn"
-type="submit">
-
-Update Asset
-
+    class="btn"
+    type="submit"
+>
+    Update Asset
 </button>
 
 <a
-href="index.php"
-class="btn">
-
-Cancel
-
+    href="index.php"
+    class="btn"
+>
+    Cancel
 </a>
 
 </form>
 
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<?php include "../../includes/footer.php"; ?>
