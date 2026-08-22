@@ -1,8 +1,10 @@
 <?php
+require_once __DIR__ . '/access_control.php';
+
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 
 $userSession = $_SESSION['user'] ?? [];
-$userRole = $userSession['role'] ?? 'Administrator';
+$userRole = userRoleLabel($userSession['role'] ?? '');
 $userName = $userSession['name'] ?? 'User';
 $userInitial = strtoupper(substr($userRole ?: $userName, 0, 1));
 
@@ -15,6 +17,15 @@ $navItems = [
     ['label' => 'Audit', 'href' => BASE_URL . 'modules/audit/index.php', 'icon' => 'fa-clipboard-check', 'match' => '/audit/'],
     ['label' => 'Reports', 'href' => BASE_URL . 'modules/reports/index.php', 'icon' => 'fa-chart-bar', 'match' => '/reports/'],
 ];
+
+if (isAdministrator()) {
+    $navItems[] = [
+        'label' => 'User Management',
+        'href' => BASE_URL . 'modules/users/index.php',
+        'icon' => 'fa-users-gear',
+        'match' => '/users/',
+    ];
+}
 
 function pcmsNavIsActive(string $requestUri, string $match): bool
 {

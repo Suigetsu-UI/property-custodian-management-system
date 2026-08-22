@@ -7,10 +7,12 @@ if (isset($_SESSION['user'])) {
     exit();
 }
 
-$error = '';
-if (isset($_GET['error'])) {
-    $error = 'Invalid Employee ID or Password.';
-}
+$error = match ($_GET['error'] ?? '') {
+    'inactive' => 'This account is inactive. Contact the System Administrator.',
+    'session' => 'Your session could not be verified. Please sign in again.',
+    'invalid', '1' => 'Invalid Employee ID or Password.',
+    default => '',
+};
 
 require_once __DIR__ . '/../config/config.php';
 

@@ -8,6 +8,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 }
 
 require_once __DIR__ . '/../includes/database.php';
+require_once __DIR__ . '/../includes/access_control.php';
 
 $employeeID = trim($_POST["employee_id"]);
 $password = trim($_POST["password"]);
@@ -18,7 +19,7 @@ try {
     $pdo = getDbConnection();
 
     $stmt = $pdo->prepare(
-        "SELECT employee_id, full_name, role, password_hash
+        "SELECT id, employee_id, full_name, role, password_hash, is_active
          FROM users
          WHERE employee_id = :employee_id"
     );
@@ -30,6 +31,11 @@ try {
     $row = $stmt->fetch();
 
     if ($row && password_verify($password, $row['password_hash'])) {
+        if (!isUserAccountActive($row['is_active'])) {
+            header("Location: login.php?error=inactive");
+            exit();
+        }
+
         $authenticatedUser = $row;
     }
 } catch (Throwable $e) {
@@ -38,7 +44,10 @@ try {
 }
 
 if ($authenticatedUser !== null) {
+    session_regenerate_id(true);
+
     $_SESSION["user"] = [
+        "id" => (int) $authenticatedUser["id"],
         "employee_id" => $authenticatedUser["employee_id"],
         "name" => $authenticatedUser["full_name"],
         "role" => $authenticatedUser["role"]
@@ -48,5 +57,5 @@ if ($authenticatedUser !== null) {
     exit();
 }
 
-header("Location: login.php?error=1");
+header("Location: login.php?error=invalid");
 exit();

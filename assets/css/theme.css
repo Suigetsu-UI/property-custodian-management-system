@@ -1613,6 +1613,66 @@ body.pcms-modal-open {
     }
 }
 
+/* ── Access control ── */
+.pcms-access-denied {
+    max-width: 680px;
+    margin: 70px auto;
+    padding: 42px;
+    text-align: center;
+    background: var(--card-bg);
+    border: 1px solid var(--borders-soft);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.pcms-access-denied-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 18px;
+    border-radius: 50%;
+    background: #fff0f2;
+    color: #8b1a3a;
+    font-size: 26px;
+}
+
+.pcms-access-denied h1 {
+    margin-bottom: 12px;
+}
+
+.pcms-access-denied p:not(.section-heading) {
+    margin: 0 auto 24px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.pcms-status-badge[data-status="active"] {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.pcms-status-badge[data-status="inactive"] {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.pcms-form-notice {
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border: 1px solid #fde68a;
+    border-radius: var(--radius-md);
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.pcms-form-notice[hidden] {
+    display: none;
+}
+
 /* ── Asset field suggestions ── */
 .pcms-typeahead {
     position: relative;

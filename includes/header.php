@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/access_control.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -41,7 +42,7 @@ require_once __DIR__ . '/../config/config.php';
         </div>
         <?php
         $headerUser = $_SESSION['user'] ?? [];
-        $headerRole = $headerUser['role'] ?? 'Administrator';
+        $headerRole = userRoleLabel($headerUser['role'] ?? '');
         $headerInitial = strtoupper(substr($headerRole, 0, 1));
         ?>
         <div class="header-avatar" aria-hidden="true"><?= htmlspecialchars($headerInitial) ?></div>
