@@ -114,25 +114,45 @@ foreach ($categories as $category):
 
 <div class="form-row">
 
-<label>Brand</label>
+<label for="legacyEditAssetBrand">Brand</label>
 
-<input
-    type="text"
-    name="brand"
-    value="<?= htmlspecialchars($asset['brand'] ?? '') ?>"
->
+<div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="brand">
+    <input
+        type="text"
+        id="legacyEditAssetBrand"
+        name="brand"
+        value="<?= htmlspecialchars($asset['brand'] ?? '') ?>"
+        autocomplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded="false"
+        aria-controls="legacyEditAssetBrandSuggestions"
+        data-asset-suggestion-input
+    >
+    <div id="legacyEditAssetBrandSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Brand suggestions" hidden></div>
+</div>
 
 </div>
 
 <div class="form-row">
 
-<label>Model</label>
+<label for="legacyEditAssetModel">Model</label>
 
-<input
-    type="text"
-    name="model"
-    value="<?= htmlspecialchars($asset['model'] ?? '') ?>"
->
+<div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="model">
+    <input
+        type="text"
+        id="legacyEditAssetModel"
+        name="model"
+        value="<?= htmlspecialchars($asset['model'] ?? '') ?>"
+        autocomplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded="false"
+        aria-controls="legacyEditAssetModelSuggestions"
+        data-asset-suggestion-input
+    >
+    <div id="legacyEditAssetModelSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Model suggestions" hidden></div>
+</div>
 
 </div>
 
@@ -150,13 +170,23 @@ foreach ($categories as $category):
 
 <div class="form-row">
 
-<label>Supplier</label>
+<label for="legacyEditAssetSupplier">Supplier</label>
 
-<input
-    type="text"
-    name="supplier"
-    value="<?= htmlspecialchars($asset['supplier'] ?? '') ?>"
->
+<div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="supplier">
+    <input
+        type="text"
+        id="legacyEditAssetSupplier"
+        name="supplier"
+        value="<?= htmlspecialchars($asset['supplier'] ?? '') ?>"
+        autocomplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded="false"
+        aria-controls="legacyEditAssetSupplierSuggestions"
+        data-asset-suggestion-input
+    >
+    <div id="legacyEditAssetSupplierSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Supplier suggestions" hidden></div>
+</div>
 
 </div>
 
@@ -199,5 +229,7 @@ foreach ($categories as $category):
 </form>
 
 </div>
+
+<script src="<?= BASE_URL ?>assets/js/asset_typeahead.js"></script>
 
 <?php include "../../includes/footer.php"; ?>

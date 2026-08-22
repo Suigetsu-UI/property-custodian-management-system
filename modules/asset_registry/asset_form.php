@@ -130,12 +130,18 @@ $availableInventoryRows = $inventoryStmt->fetchAll();
 
 <div class="form-row">
     <label for="registerAssetBrand">Brand</label>
-    <input type="text" id="registerAssetBrand" name="brand">
+    <div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="brand">
+        <input type="text" id="registerAssetBrand" name="brand" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="registerAssetBrandSuggestions" data-asset-suggestion-input>
+        <div id="registerAssetBrandSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Brand suggestions" hidden></div>
+    </div>
 </div>
 
 <div class="form-row">
     <label for="registerAssetModel">Model</label>
-    <input type="text" id="registerAssetModel" name="model">
+    <div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="model">
+        <input type="text" id="registerAssetModel" name="model" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="registerAssetModelSuggestions" data-asset-suggestion-input>
+        <div id="registerAssetModelSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Model suggestions" hidden></div>
+    </div>
 </div>
 
 <div class="form-row">
@@ -167,7 +173,10 @@ $availableInventoryRows = $inventoryStmt->fetchAll();
 
 <div class="form-row">
     <label for="registerAssetSupplier">Supplier</label>
-    <input type="text" id="registerAssetSupplier" name="supplier">
+    <div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="supplier">
+        <input type="text" id="registerAssetSupplier" name="supplier" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="registerAssetSupplierSuggestions" data-asset-suggestion-input>
+        <div id="registerAssetSupplierSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Supplier suggestions" hidden></div>
+    </div>
 </div>
 
 <div class="form-row pcms-form-span-2">

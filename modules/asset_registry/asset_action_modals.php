@@ -157,12 +157,18 @@
 
 <div class="form-row">
     <label for="editAssetBrand">Brand</label>
-    <input type="text" id="editAssetBrand" name="brand">
+    <div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="brand">
+        <input type="text" id="editAssetBrand" name="brand" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="editAssetBrandSuggestions" data-asset-suggestion-input>
+        <div id="editAssetBrandSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Brand suggestions" hidden></div>
+    </div>
 </div>
 
 <div class="form-row">
     <label for="editAssetModel">Model</label>
-    <input type="text" id="editAssetModel" name="model">
+    <div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="model">
+        <input type="text" id="editAssetModel" name="model" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="editAssetModelSuggestions" data-asset-suggestion-input>
+        <div id="editAssetModelSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Model suggestions" hidden></div>
+    </div>
 </div>
 
 <div class="form-row">
@@ -172,7 +178,10 @@
 
 <div class="form-row">
     <label for="editAssetSupplier">Supplier</label>
-    <input type="text" id="editAssetSupplier" name="supplier">
+    <div class="pcms-typeahead" data-asset-typeahead data-suggestion-field="supplier">
+        <input type="text" id="editAssetSupplier" name="supplier" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="editAssetSupplierSuggestions" data-asset-suggestion-input>
+        <div id="editAssetSupplierSuggestions" class="pcms-typeahead-list" role="listbox" aria-label="Supplier suggestions" hidden></div>
+    </div>
 </div>
 
 <div class="form-row">
