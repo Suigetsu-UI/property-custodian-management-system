@@ -230,6 +230,6 @@ foreach ($categories as $category):
 
 </div>
 
-<script src="<?= BASE_URL ?>assets/js/asset_typeahead.js"></script>
+<script src="<?= BASE_URL ?>assets/js/asset_typeahead.js?v=<?= filemtime(__DIR__ . '/../../assets/js/asset_typeahead.js') ?>"></script>
 
 <?php include "../../includes/footer.php"; ?>

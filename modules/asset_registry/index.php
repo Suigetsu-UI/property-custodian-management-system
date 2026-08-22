@@ -128,7 +128,7 @@ The Asset record could not be saved. Please check the entered values and try aga
 
 </div>
 
-<script src="<?= BASE_URL ?>assets/js/asset_typeahead.js"></script>
-<script src="<?= BASE_URL ?>assets/js/asset_registry.js"></script>
+<script src="<?= BASE_URL ?>assets/js/asset_typeahead.js?v=<?= filemtime(__DIR__ . '/../../assets/js/asset_typeahead.js') ?>"></script>
+<script src="<?= BASE_URL ?>assets/js/asset_registry.js?v=<?= filemtime(__DIR__ . '/../../assets/js/asset_registry.js') ?>"></script>
 
 <?php include "../../includes/footer.php"; ?>

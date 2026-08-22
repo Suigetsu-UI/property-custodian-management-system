@@ -839,6 +839,29 @@ body {
     font-weight: 600;
 }
 
+.asset-filter-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: -6px 0 18px;
+}
+
+#assetResultCount {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.asset-filter-summary .btn {
+    padding: 9px 14px !important;
+}
+
+.asset-filter-summary .btn:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.5;
+}
+
 /* ── Tables ── */
 .table-container,
 .table-wrapper {

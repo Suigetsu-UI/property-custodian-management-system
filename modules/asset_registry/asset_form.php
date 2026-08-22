@@ -65,16 +65,6 @@ $availableInventoryRows = $inventoryStmt->fetchAll();
     <input type="text" id="assetID" name="asset_id" value="" readonly>
 </div>
 
-<div class="form-row">
-    <label for="assetQrPreview">QR Code</label>
-    <input
-        type="text"
-        id="assetQrPreview"
-        value="Automatically Generated After Saving"
-        readonly
-    >
-</div>
-
 <div class="form-row pcms-form-span-2">
 
 <label for="inventoryItemSelect">Select Inventory Item</label>

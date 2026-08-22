@@ -164,6 +164,18 @@ $assetPayload = htmlspecialchars(
 
 <?php endforeach; ?>
 
+<?php if (!empty($assetRows)): ?>
+
+<tr id="assetFilterEmptyState" hidden>
+
+<td colspan="6" style="text-align:center;padding:40px;">
+    No assets match the current search and filters.
+</td>
+
+</tr>
+
+<?php endif; ?>
+
 <?php if (empty($assetRows)): ?>
 
 <tr>

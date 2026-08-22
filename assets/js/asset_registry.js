@@ -10,6 +10,10 @@
     var searchInput = document.getElementById('searchInput');
     var categoryFilter = document.getElementById('categoryFilter');
     var statusFilter = document.getElementById('statusFilter');
+    var locationFilter = document.getElementById('locationFilter');
+    var assetResultCount = document.getElementById('assetResultCount');
+    var clearAssetFilters = document.getElementById('clearAssetFilters');
+    var assetFilterEmptyState = document.getElementById('assetFilterEmptyState');
     var inventoryItemSelect = document.getElementById('inventoryItemSelect');
     var assetNameField = document.getElementById('assetNameField');
     var assetCategoryField = document.getElementById('assetCategoryField');
@@ -86,9 +90,7 @@
         });
     }
 
-    function readAsset(trigger) {
-        var row = trigger.closest('tr[data-asset]');
-
+    function readAssetRow(row) {
         if (!row || !row.dataset.asset) return null;
 
         try {
@@ -96,6 +98,12 @@
         } catch (error) {
             return null;
         }
+    }
+
+    function readAsset(trigger) {
+        var row = trigger.closest('tr[data-asset]');
+
+        return readAssetRow(row);
     }
 
     function displayValue(value, emptyText) {
@@ -361,28 +369,122 @@
         });
     }
 
-    function applyAssetFilters() {
-        var search = (searchInput ? searchInput.value : '').toLowerCase();
-        var category = (categoryFilter ? categoryFilter.value : '').toLowerCase();
-        var status = (statusFilter ? statusFilter.value : '').toLowerCase();
+    function normalizedValue(value) {
+        return value === null || value === undefined
+            ? ''
+            : String(value).trim().toLowerCase();
+    }
+
+    function populateLocationFilter() {
+        if (!locationFilter) return;
+
         var rows = document.querySelectorAll('#assetTable tbody tr.asset-row');
+        var locations = new Map();
 
         rows.forEach(function (row) {
-            var assetID = row.cells[0].textContent.toLowerCase();
-            var assetName = row.cells[1].textContent.toLowerCase();
-            var assetCategory = row.cells[2].textContent.toLowerCase().trim();
-            var assetStatus = row.cells[4].textContent.toLowerCase().trim();
-            var matchesSearch = assetID.includes(search) || assetName.includes(search);
+            var asset = readAssetRow(row);
+            var location = asset && asset.location
+                ? String(asset.location).trim()
+                : '';
+
+            if (location && !locations.has(location.toLowerCase())) {
+                locations.set(location.toLowerCase(), location);
+            }
+        });
+
+        Array.from(locations.values())
+            .sort(function (first, second) {
+                return first.localeCompare(second, 'en-PH', {
+                    sensitivity: 'base'
+                });
+            })
+            .forEach(function (location) {
+                var option = document.createElement('option');
+
+                option.value = location;
+                option.textContent = location;
+                locationFilter.appendChild(option);
+            });
+    }
+
+    function applyAssetFilters() {
+        var search = normalizedValue(searchInput ? searchInput.value : '');
+        var category = normalizedValue(categoryFilter ? categoryFilter.value : '');
+        var status = normalizedValue(statusFilter ? statusFilter.value : '');
+        var location = normalizedValue(locationFilter ? locationFilter.value : '');
+        var rows = document.querySelectorAll('#assetTable tbody tr.asset-row');
+        var searchableFields = [
+            'asset_id',
+            'asset_name',
+            'brand',
+            'model',
+            'serial_number',
+            'custodian',
+            'employee_id',
+            'department',
+            'supplier'
+        ];
+        var visibleCount = 0;
+
+        rows.forEach(function (row) {
+            var asset = readAssetRow(row) || {};
+            var searchableText = searchableFields.map(function (field) {
+                return normalizedValue(asset[field]);
+            }).join(' ');
+            var assetCategory = normalizedValue(asset.category);
+            var assetStatus = normalizedValue(asset.status || 'Available');
+            var assetLocation = normalizedValue(asset.location);
+            var matchesSearch = search === '' || searchableText.includes(search);
             var matchesCategory = category === '' || assetCategory === category;
             var matchesStatus = status === '' || assetStatus === status;
+            var matchesLocation = location === '' || assetLocation === location;
+            var visible = matchesSearch &&
+                matchesCategory &&
+                matchesStatus &&
+                matchesLocation;
 
-            row.style.display = matchesSearch && matchesCategory && matchesStatus
-                ? ''
-                : 'none';
+            row.style.display = visible ? '' : 'none';
+
+            if (visible) visibleCount++;
         });
+
+        if (assetResultCount) {
+            assetResultCount.textContent = 'Showing ' +
+                visibleCount +
+                ' ' +
+                (visibleCount === 1 ? 'Asset' : 'Assets');
+        }
+
+        if (assetFilterEmptyState) {
+            assetFilterEmptyState.hidden = visibleCount !== 0;
+        }
+
+        if (clearAssetFilters) {
+            clearAssetFilters.disabled = !(
+                search || category || status || location
+            );
+        }
     }
+
+    populateLocationFilter();
 
     if (searchInput) searchInput.addEventListener('input', applyAssetFilters);
     if (categoryFilter) categoryFilter.addEventListener('change', applyAssetFilters);
     if (statusFilter) statusFilter.addEventListener('change', applyAssetFilters);
+    if (locationFilter) locationFilter.addEventListener('change', applyAssetFilters);
+
+    if (clearAssetFilters) {
+        clearAssetFilters.addEventListener('click', function () {
+            if (searchInput) searchInput.value = '';
+            if (categoryFilter) categoryFilter.value = '';
+            if (statusFilter) statusFilter.value = '';
+            if (locationFilter) locationFilter.value = '';
+
+            applyAssetFilters();
+
+            if (searchInput) searchInput.focus();
+        });
+    }
+
+    applyAssetFilters();
 })();
