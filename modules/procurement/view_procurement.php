@@ -91,6 +91,16 @@ include "../../includes/header.php";
 </tr>
 
 <tr>
+    <th>Delivery Date</th>
+    <td><?= !empty($procurement['delivery_date']) ? htmlspecialchars($procurement['delivery_date']) : 'Not Yet Delivered' ?></td>
+</tr>
+
+<tr>
+    <th>Delivered Quantity</th>
+    <td><?= htmlspecialchars((string) ($procurement['delivered_quantity'] ?? 0)) ?></td>
+</tr>
+
+<tr>
     <th>Remarks</th>
     <td><?= htmlspecialchars($procurement['remarks'] ?? '') ?></td>
 </tr>

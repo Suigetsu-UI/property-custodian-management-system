@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = filter_var(
     $_GET['id'] ?? null,
@@ -28,7 +29,12 @@ try {
     $auditStmt = $pdo->prepare(
         "SELECT
             id,
-            asset_id
+            asset_id,
+            audit_id,
+            asset_name_snap,
+            category_snap,
+            result,
+            status
          FROM audits
          WHERE id = :id
          FOR UPDATE"
@@ -50,6 +56,9 @@ try {
     $assetStmt = $pdo->prepare(
         "SELECT
             id,
+            asset_id,
+            asset_name,
+            category,
             custodian,
             status
          FROM assets
@@ -96,6 +105,8 @@ try {
 
     $hasActiveMaintenance =
         (bool) $activeMaintenanceStmt->fetch();
+
+    $newAssetStatus = null;
 
     if (!$hasActiveMaintenance) {
 
@@ -151,6 +162,30 @@ try {
             'status' => $newAssetStatus,
             'id' => $audit['asset_id']
         ]);
+    }
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Audit',
+        'event_type' => 'Deleted',
+        'business_id' => $audit['audit_id'],
+        'related_business_id' => $asset['asset_id'],
+        'record_name_snap' => $audit['asset_name_snap'],
+        'category_snap' => $audit['category_snap'],
+        'event_date' => currentPropertyEventDate(),
+        'from_status' => $audit['status'],
+        'outcome' => $audit['result'],
+        'performed_by' => currentPropertyEventActor(),
+    ]);
+
+    if ($newAssetStatus !== null) {
+        recordAssetStatusChangeEvent(
+            $pdo,
+            $asset,
+            $newAssetStatus,
+            currentPropertyEventDate(),
+            $audit['audit_id'],
+            'Asset status recalculated after Audit deletion.'
+        );
     }
 
     $pdo->commit();

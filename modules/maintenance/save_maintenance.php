@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: index.php");
@@ -191,6 +192,39 @@ try {
         'status' => $newAssetStatus,
         'id' => $asset['id']
     ]);
+
+    $maintenanceEventType = match ($status) {
+        'In Progress' => 'Started',
+        'Completed' => 'Completed',
+        default => 'Scheduled',
+    };
+
+    $maintenanceEventDate =
+        $status === 'Scheduled'
+            ? $scheduledDate
+            : currentPropertyEventDate();
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Maintenance',
+        'event_type' => $maintenanceEventType,
+        'business_id' => $maintenanceBusinessId,
+        'related_business_id' => $asset['asset_id'],
+        'record_name_snap' => $asset['asset_name'],
+        'category_snap' => $asset['category'],
+        'event_date' => $maintenanceEventDate,
+        'to_status' => $status,
+        'outcome' => $maintenanceType,
+        'performed_by' => currentPropertyEventActor(),
+    ]);
+
+    recordAssetStatusChangeEvent(
+        $pdo,
+        $asset,
+        $newAssetStatus,
+        currentPropertyEventDate(),
+        $maintenanceBusinessId,
+        'Asset status synchronized from Maintenance.'
+    );
 
     $createdMaintenanceId =
         $maintenanceBusinessId;

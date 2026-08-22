@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = filter_var(
     $_GET['id'] ?? null,
@@ -28,7 +29,12 @@ try {
     $maintenanceStmt = $pdo->prepare(
         "SELECT
             id,
-            asset_id
+            asset_id,
+            maintenance_id,
+            asset_name_snap,
+            category_snap,
+            maintenance_type,
+            status
          FROM maintenance
          WHERE id = :id
          FOR UPDATE"
@@ -53,7 +59,11 @@ try {
     $assetStmt = $pdo->prepare(
         "SELECT
             id,
-            custodian
+            asset_id,
+            asset_name,
+            category,
+            custodian,
+            status
          FROM assets
          WHERE id = :id
          FOR UPDATE"
@@ -120,6 +130,28 @@ try {
         'status' => $newAssetStatus,
         'id' => $maintenance['asset_id']
     ]);
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Maintenance',
+        'event_type' => 'Deleted',
+        'business_id' => $maintenance['maintenance_id'],
+        'related_business_id' => $asset['asset_id'],
+        'record_name_snap' => $maintenance['asset_name_snap'],
+        'category_snap' => $maintenance['category_snap'],
+        'event_date' => currentPropertyEventDate(),
+        'from_status' => $maintenance['status'],
+        'outcome' => $maintenance['maintenance_type'],
+        'performed_by' => currentPropertyEventActor(),
+    ]);
+
+    recordAssetStatusChangeEvent(
+        $pdo,
+        $asset,
+        $newAssetStatus,
+        currentPropertyEventDate(),
+        $maintenance['maintenance_id'],
+        'Asset status recalculated after Maintenance deletion.'
+    );
 
     $pdo->commit();
 

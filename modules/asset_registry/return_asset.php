@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = filter_var(
     $_GET['id'] ?? null,
@@ -98,6 +99,22 @@ try {
 
     $update->execute([
         'id' => $id
+    ]);
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Asset Registry',
+        'event_type' => 'Returned',
+        'business_id' => $asset['asset_id'],
+        'related_business_id' => $asset['employee_id'] ?? null,
+        'record_name_snap' => $asset['asset_name'],
+        'category_snap' => $asset['category'],
+        'event_date' => currentPropertyEventDate(),
+        'from_status' => $asset['status'],
+        'to_status' => 'Available',
+        'performed_by' => currentPropertyEventActor(),
+        'description' => !empty($asset['custodian'])
+            ? 'Returned by ' . $asset['custodian'] . '.'
+            : 'Asset returned to available custody.',
     ]);
 
     $pdo->commit();

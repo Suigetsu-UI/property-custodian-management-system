@@ -8,15 +8,29 @@
     var addForm = document.getElementById('addProcurementForm');
     var addButton = document.getElementById('openProcurementModal');
     var editFromView = document.getElementById('editProcurementFromView');
+    var addStatus = document.getElementById('procurementStatus');
+    var addDeliveryDate = document.getElementById('procurementDeliveryDate');
+    var editStatus = document.getElementById('editProcurementStatus');
+    var editDeliveryDate = document.getElementById('editProcurementDeliveryDate');
     var currentRecord = null;
+
+    function syncDeliveryDateRequirement(statusSelect, dateInput) {
+        if (!statusSelect || !dateInput) return;
+        dateInput.required = statusSelect.value === 'Delivered';
+    }
 
     function populateView(record) {
         viewModal.querySelectorAll('[data-procurement-view]').forEach(function (field) {
             var name = field.dataset.procurementView;
-            var emptyText = ['approved_by', 'approval_date'].includes(name)
-                ? 'Not Yet Approved'
-                : '—';
-            field.textContent = ['request_date', 'approval_date'].includes(name)
+            var emptyText;
+            if (['approved_by', 'approval_date'].includes(name)) {
+                emptyText = 'Not Yet Approved';
+            } else if (name === 'delivery_date') {
+                emptyText = 'Not Yet Delivered';
+            } else {
+                emptyText = '—';
+            }
+            field.textContent = ['request_date', 'approval_date', 'delivery_date'].includes(name)
                 ? modal.date(record[name], emptyText)
                 : modal.value(record[name], emptyText);
         });
@@ -35,6 +49,7 @@
             editProcurementRequestDate: record.request_date,
             editProcurementApprovedBy: record.approved_by,
             editProcurementApprovalDate: record.approval_date,
+            editProcurementDeliveryDate: record.delivery_date,
             editProcurementRemarks: record.remarks
         };
         Object.keys(values).forEach(function (id) {
@@ -42,6 +57,19 @@
         });
         modal.setSelectValue(document.getElementById('editProcurementCategory'), record.category);
         modal.setSelectValue(document.getElementById('editProcurementStatus'), record.status);
+        syncDeliveryDateRequirement(editStatus, editDeliveryDate);
+    }
+
+    if (addStatus) {
+        addStatus.addEventListener('change', function () {
+            syncDeliveryDateRequirement(addStatus, addDeliveryDate);
+        });
+    }
+
+    if (editStatus) {
+        editStatus.addEventListener('change', function () {
+            syncDeliveryDateRequirement(editStatus, editDeliveryDate);
+        });
     }
 
     document.querySelectorAll('[data-procurement-action]').forEach(function (trigger) {
@@ -77,6 +105,7 @@
             if (!idField || !addForm) return;
 
             addForm.reset();
+            syncDeliveryDateRequirement(addStatus, addDeliveryDate);
             idField.value = '';
             addButton.disabled = true;
 

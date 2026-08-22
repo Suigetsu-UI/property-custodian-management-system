@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = filter_var(
     $_GET['id'] ?? null,
@@ -62,7 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $maintenanceStmt = $pdo->prepare(
             "SELECT
                 id,
-                asset_id
+                asset_id,
+                maintenance_id,
+                maintenance_type,
+                scheduled_date,
+                status
              FROM maintenance
              WHERE id = :id
              FOR UPDATE"
@@ -173,6 +178,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status' => $newAssetStatus,
             'id' => $existing['asset_id']
         ]);
+
+        $maintenanceChanged =
+            $existing['maintenance_type'] !== $maintenanceType ||
+            $existing['scheduled_date'] !== $scheduledDate ||
+            $existing['status'] !== $status;
+
+        if ($maintenanceChanged) {
+            $statusChanged =
+                $existing['status'] !== $status;
+
+            $maintenanceEventType =
+                $statusChanged
+                    ? match ($status) {
+                        'In Progress' => 'Started',
+                        'Completed' => 'Completed',
+                        default => 'Scheduled',
+                    }
+                    : 'Updated';
+
+            $maintenanceEventDate =
+                $statusChanged && $status === 'Scheduled'
+                    ? $scheduledDate
+                    : currentPropertyEventDate();
+
+            recordPropertyEvent($pdo, [
+                'module' => 'Maintenance',
+                'event_type' => $maintenanceEventType,
+                'business_id' => $existing['maintenance_id'],
+                'related_business_id' => $asset['asset_id'],
+                'record_name_snap' => $asset['asset_name'],
+                'category_snap' => $asset['category'],
+                'event_date' => $maintenanceEventDate,
+                'from_status' => $existing['status'],
+                'to_status' => $status,
+                'outcome' => $maintenanceType,
+                'performed_by' => currentPropertyEventActor(),
+            ]);
+        }
+
+        recordAssetStatusChangeEvent(
+            $pdo,
+            $asset,
+            $newAssetStatus,
+            currentPropertyEventDate(),
+            $existing['maintenance_id'],
+            'Asset status synchronized from Maintenance update.'
+        );
 
         $pdo->commit();
 

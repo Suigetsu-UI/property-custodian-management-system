@@ -42,6 +42,18 @@ include "../../includes/header.php";
 
 <?php endif; ?>
 
+<?php if (($_GET['error'] ?? '') === 'delivery_date'): ?>
+
+<div class="error-message">
+
+    A Delivery Date is required when Procurement status is Delivered.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
 <?php if (($_GET['error'] ?? '') === 'inventory_negative'): ?>
 
 <div class="error-message">

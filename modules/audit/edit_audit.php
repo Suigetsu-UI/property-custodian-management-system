@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = filter_var(
     $_GET['id'] ?? null,
@@ -69,7 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $auditStmt = $pdo->prepare(
             "SELECT
                 id,
-                asset_id
+                asset_id,
+                audit_id,
+                auditor,
+                audit_date,
+                result,
+                remarks,
+                status
              FROM audits
              WHERE id = :id
              FOR UPDATE"
@@ -91,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $assetStmt = $pdo->prepare(
             "SELECT
                 id,
+                asset_id,
                 asset_name,
                 category,
                 custodian,
@@ -208,6 +216,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'status' => $newAssetStatus,
                 'id' => $existing['asset_id']
             ]);
+        }
+
+        $auditChanged =
+            $existing['auditor'] !== $auditor ||
+            $existing['audit_date'] !== $auditDate ||
+            $existing['result'] !== $result ||
+            (string) ($existing['remarks'] ?? '') !== $remarks ||
+            $existing['status'] !== $status;
+
+        if ($auditChanged) {
+$statusChanged =
+    $existing['status'] !== $status;
+
+$resultChanged =
+    $existing['result'] !== $result;
+
+if ($statusChanged) {
+
+    $auditEventType = match ($status) {
+        'Ongoing' => 'Started',
+        'Completed' => 'Completed',
+        default => 'Scheduled',
+    };
+
+} elseif ($resultChanged) {
+
+    $auditEventType =
+        'Result Changed';
+
+} else {
+
+    $auditEventType =
+        'Updated';
+}
+
+            recordPropertyEvent($pdo, [
+                'module' => 'Audit',
+                'event_type' => $auditEventType,
+                'business_id' => $existing['audit_id'],
+                'related_business_id' => $asset['asset_id'],
+                'record_name_snap' => $asset['asset_name'],
+                'category_snap' => $asset['category'],
+                'event_date' => $auditDate,
+                'from_status' => $existing['status'],
+                'to_status' => $status,
+                'outcome' => $result,
+                'performed_by' => currentPropertyEventActor(),
+                'description' => $remarks,
+            ]);
+        }
+
+        if ($newAssetStatus !== null) {
+            recordAssetStatusChangeEvent(
+                $pdo,
+                $asset,
+                $newAssetStatus,
+                $auditDate,
+                $existing['audit_id'],
+                'Asset status synchronized from Audit update: ' . $result . '.'
+            );
         }
 
         $pdo->commit();

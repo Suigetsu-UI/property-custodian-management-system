@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: index.php");
@@ -119,6 +120,20 @@ try {
         'department' => $department,
         'date_assigned' => $dateAssigned,
         'id' => $id
+    ]);
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Asset Registry',
+        'event_type' => 'Assigned',
+        'business_id' => $asset['asset_id'],
+        'related_business_id' => $employeeId,
+        'record_name_snap' => $asset['asset_name'],
+        'category_snap' => $asset['category'],
+        'event_date' => $dateAssigned,
+        'from_status' => $asset['status'],
+        'to_status' => 'Assigned',
+        'performed_by' => currentPropertyEventActor(),
+        'description' => 'Assigned to ' . $custodian . ' (' . $department . ').',
     ]);
 
     $pdo->commit();

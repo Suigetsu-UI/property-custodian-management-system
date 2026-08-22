@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: index.php");
@@ -164,6 +165,33 @@ try {
 
     $updateInventory->execute([
         'id' => $inventory['id']
+    ]);
+
+    $eventDate = currentPropertyEventDate();
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Asset Registry',
+        'event_type' => 'Registered',
+        'business_id' => $assetBusinessId,
+        'related_business_id' => $inventory['inventory_id'],
+        'record_name_snap' => $inventory['asset_name'],
+        'category_snap' => $inventory['category'],
+        'event_date' => $eventDate,
+        'to_status' => 'Available',
+        'performed_by' => currentPropertyEventActor(),
+    ]);
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Inventory',
+        'event_type' => 'Stock Decreased',
+        'business_id' => $inventory['inventory_id'],
+        'related_business_id' => $assetBusinessId,
+        'record_name_snap' => $inventory['asset_name'],
+        'category_snap' => $inventory['category'],
+        'event_date' => $eventDate,
+        'quantity_delta' => -1,
+        'performed_by' => currentPropertyEventActor(),
+        'description' => 'Inventory unit registered as an individual Asset.',
     ]);
 
     $createdAssetId = $assetBusinessId;

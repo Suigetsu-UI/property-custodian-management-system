@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = filter_var(
     $_GET['id'] ?? null,
@@ -33,6 +34,8 @@ try {
             id,
             asset_id,
             inventory_id,
+            asset_name,
+            category,
             status
          FROM assets
          WHERE id = :id
@@ -135,7 +138,7 @@ try {
      * Lock Inventory before restoring stock.
      */
     $inventoryStmt = $pdo->prepare(
-        "SELECT id
+        "SELECT id, inventory_id, asset_name, category
          FROM inventory
          WHERE id = :id
          FOR UPDATE"
@@ -152,6 +155,33 @@ try {
             'ASSET_INVENTORY_LINK_MISSING'
         );
     }
+
+    $eventDate = currentPropertyEventDate();
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Asset Registry',
+        'event_type' => 'Deleted',
+        'business_id' => $asset['asset_id'],
+        'related_business_id' => $inventory['inventory_id'],
+        'record_name_snap' => $asset['asset_name'],
+        'category_snap' => $asset['category'],
+        'event_date' => $eventDate,
+        'from_status' => $asset['status'],
+        'performed_by' => currentPropertyEventActor(),
+    ]);
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Inventory',
+        'event_type' => 'Stock Increased',
+        'business_id' => $inventory['inventory_id'],
+        'related_business_id' => $asset['asset_id'],
+        'record_name_snap' => $inventory['asset_name'],
+        'category_snap' => $inventory['category'],
+        'event_date' => $eventDate,
+        'quantity_delta' => 1,
+        'performed_by' => currentPropertyEventActor(),
+        'description' => 'Deleted Asset restored one Inventory unit.',
+    ]);
 
     /*
      * Delete the individual Asset.

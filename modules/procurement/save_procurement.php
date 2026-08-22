@@ -3,6 +3,7 @@
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/asset_functions.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = isset($_POST['id']) && $_POST['id'] !== ''
     ? (int) $_POST['id']
@@ -17,6 +18,7 @@ $requestDate = trim($_POST['request_date'] ?? '');
 $newStatus = trim($_POST['status'] ?? '');
 $approvedBy = trim($_POST['approved_by'] ?? '');
 $approvalDate = trim($_POST['approval_date'] ?? '');
+$deliveryDate = trim($_POST['delivery_date'] ?? '');
 $remarks = trim($_POST['remarks'] ?? '');
 
 /*
@@ -27,6 +29,7 @@ $remarks = trim($_POST['remarks'] ?? '');
 */
 $requestDate = $requestDate !== '' ? $requestDate : null;
 $approvalDate = $approvalDate !== '' ? $approvalDate : null;
+$deliveryDate = $deliveryDate !== '' ? $deliveryDate : null;
 
 /*
 |--------------------------------------------------------------------------
@@ -81,6 +84,15 @@ if (
     exit;
 }
 
+if ($newStatus === 'Delivered' && $deliveryDate === null) {
+    header("Location: index.php?error=delivery_date");
+    exit;
+}
+
+if ($newStatus !== 'Delivered') {
+    $deliveryDate = null;
+}
+
 $pdo = null;
 $createdProcurementId = null;
 
@@ -102,7 +114,8 @@ try {
                 item_name,
                 category,
                 status,
-                delivered_quantity
+                delivered_quantity,
+                delivery_date
              FROM procurement
              WHERE id = :id
              FOR UPDATE"
@@ -170,6 +183,44 @@ try {
             );
 
             $newDeliveredQuantity = $quantity;
+
+            $sameLogicalItem =
+                strcasecmp($oldItemName, $itemName) === 0 &&
+                strcasecmp($oldCategory, $category) === 0;
+
+            if ($sameLogicalItem) {
+                recordInventoryMovementByLogicalItem(
+                    $pdo,
+                    $itemName,
+                    $category,
+                    $quantity - $oldDeliveredQuantity,
+                    $deliveryDate,
+                    $existing['procurement_id'],
+                    'Procurement delivery adjustment.'
+                );
+            } else {
+                if ($oldDeliveredQuantity > 0) {
+                    recordInventoryMovementByLogicalItem(
+                        $pdo,
+                        $oldItemName,
+                        $oldCategory,
+                        -$oldDeliveredQuantity,
+                        currentPropertyEventDate(),
+                        $existing['procurement_id'],
+                        'Procurement delivered item changed.'
+                    );
+                }
+
+                recordInventoryMovementByLogicalItem(
+                    $pdo,
+                    $itemName,
+                    $category,
+                    $quantity,
+                    $deliveryDate,
+                    $existing['procurement_id'],
+                    'Procurement delivery received.'
+                );
+            }
         }
 
         /*
@@ -187,6 +238,7 @@ try {
                 status = :status,
                 approved_by = :approved_by,
                 approval_date = :approval_date,
+                delivery_date = :delivery_date,
                 remarks = :remarks,
                 delivered_quantity = :delivered_quantity,
                 updated_at = now()
@@ -203,10 +255,39 @@ try {
             'status' => $newStatus,
             'approved_by' => $approvedBy,
             'approval_date' => $approvalDate,
+            'delivery_date' => $deliveryDate,
             'remarks' => $remarks,
             'delivered_quantity' => $newDeliveredQuantity,
             'id' => $id,
         ]);
+
+        if ($previousStatus !== $newStatus) {
+            $eventType = match ($newStatus) {
+                'Approved' => 'Approved',
+                'Rejected' => 'Rejected',
+                'Delivered' => 'Delivered',
+                default => 'Status Changed',
+            };
+
+            $statusEventDate = match ($newStatus) {
+                'Approved' => $approvalDate ?? currentPropertyEventDate(),
+                'Delivered' => $deliveryDate,
+                default => currentPropertyEventDate(),
+            };
+
+            recordPropertyEvent($pdo, [
+                'module' => 'Procurement',
+                'event_type' => $eventType,
+                'business_id' => $existing['procurement_id'],
+                'record_name_snap' => $itemName,
+                'category_snap' => $category,
+                'event_date' => $statusEventDate,
+                'quantity_delta' => $newStatus === 'Delivered' ? $quantity : null,
+                'from_status' => $previousStatus,
+                'to_status' => $newStatus,
+                'performed_by' => currentPropertyEventActor(),
+            ]);
+        }
 
     } else {
 
@@ -294,6 +375,7 @@ try {
                 status,
                 approved_by,
                 approval_date,
+                delivery_date,
                 remarks,
                 delivered_quantity
              )
@@ -308,6 +390,7 @@ try {
                 :status,
                 :approved_by,
                 :approval_date,
+                :delivery_date,
                 :remarks,
                 :delivered_quantity
              )"
@@ -324,9 +407,61 @@ try {
             'status' => $newStatus,
             'approved_by' => $approvedBy,
             'approval_date' => $approvalDate,
+            'delivery_date' => $deliveryDate,
             'remarks' => $remarks,
             'delivered_quantity' => $deliveredQuantity,
         ]);
+
+        recordPropertyEvent($pdo, [
+            'module' => 'Procurement',
+            'event_type' => 'Requested',
+            'business_id' => $submittedId,
+            'record_name_snap' => $itemName,
+            'category_snap' => $category,
+            'event_date' => $requestDate ?? currentPropertyEventDate(),
+            'to_status' => 'Pending',
+            'performed_by' => currentPropertyEventActor(),
+        ]);
+
+        if ($newStatus !== 'Pending') {
+            $eventType = match ($newStatus) {
+                'Approved' => 'Approved',
+                'Rejected' => 'Rejected',
+                'Delivered' => 'Delivered',
+                default => 'Status Changed',
+            };
+
+            $statusEventDate = match ($newStatus) {
+                'Approved' => $approvalDate ?? currentPropertyEventDate(),
+                'Delivered' => $deliveryDate,
+                default => currentPropertyEventDate(),
+            };
+
+            recordPropertyEvent($pdo, [
+                'module' => 'Procurement',
+                'event_type' => $eventType,
+                'business_id' => $submittedId,
+                'record_name_snap' => $itemName,
+                'category_snap' => $category,
+                'event_date' => $statusEventDate,
+                'quantity_delta' => $newStatus === 'Delivered' ? $quantity : null,
+                'from_status' => 'Pending',
+                'to_status' => $newStatus,
+                'performed_by' => currentPropertyEventActor(),
+            ]);
+        }
+
+        if ($newStatus === 'Delivered') {
+            recordInventoryMovementByLogicalItem(
+                $pdo,
+                $itemName,
+                $category,
+                $quantity,
+                $deliveryDate,
+                $submittedId,
+                'Procurement delivery received.'
+            );
+        }
 
         /*
          * Retire this temporary session-issued ID only after the database

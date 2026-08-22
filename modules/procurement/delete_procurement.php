@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = isset($_GET['id']) ? (int) $_GET['id'] : null;
 
@@ -12,7 +13,12 @@ if ($id !== null) {
         $pdo->beginTransaction();
 
         $stmt = $pdo->prepare(
-            "SELECT delivered_quantity
+            "SELECT
+                procurement_id,
+                item_name,
+                category,
+                status,
+                delivered_quantity
              FROM procurement
              WHERE id = :id
              FOR UPDATE"
@@ -31,6 +37,17 @@ if ($id !== null) {
                 header("Location: index.php?error=delivered");
                 exit;
             }
+
+            recordPropertyEvent($pdo, [
+                'module' => 'Procurement',
+                'event_type' => 'Deleted',
+                'business_id' => $row['procurement_id'],
+                'record_name_snap' => $row['item_name'],
+                'category_snap' => $row['category'],
+                'event_date' => currentPropertyEventDate(),
+                'from_status' => $row['status'],
+                'performed_by' => currentPropertyEventActor(),
+            ]);
 
             $delete = $pdo->prepare(
                 "DELETE FROM procurement

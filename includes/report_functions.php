@@ -386,3 +386,529 @@ function generateFullSystemSummary(): array
             generateAuditSummary()
     ];
 }
+
+function getReportTimezone(): DateTimeZone
+{
+    static $timezone = null;
+
+    if (!$timezone instanceof DateTimeZone) {
+        $timezone = new DateTimeZone('Asia/Manila');
+    }
+
+    return $timezone;
+}
+
+function getReportNow(): DateTimeImmutable
+{
+    return new DateTimeImmutable('now', getReportTimezone());
+}
+
+function getReportToday(): string
+{
+    return getReportNow()->format('Y-m-d');
+}
+
+function getAllowedReportPeriods(): array
+{
+    return [
+        'Daily',
+        'Weekly',
+        'Monthly',
+        'Quarterly',
+        'Annual',
+        'Custom Date Range',
+    ];
+}
+
+function parseReportDate(string $value): ?DateTimeImmutable
+{
+    $date = DateTimeImmutable::createFromFormat(
+        '!Y-m-d',
+        $value,
+        getReportTimezone()
+    );
+
+    return $date !== false && $date->format('Y-m-d') === $value
+        ? $date
+        : null;
+}
+
+function formatReportPeriodLabel(
+    string $period,
+    string $startDate,
+    string $endDate
+): string {
+    $start = parseReportDate($startDate);
+    $end = parseReportDate($endDate);
+
+    if (!$start || !$end) {
+        return $startDate . ' to ' . $endDate;
+    }
+
+    return match ($period) {
+        'Daily' => $start->format('F j, Y'),
+        'Weekly' => $start->format('F j, Y') .
+            ' to ' . $end->format('F j, Y'),
+        'Monthly' => $start->format('F Y'),
+        'Quarterly' => 'Q' .
+            (string) ((int) floor(((int) $start->format('n') - 1) / 3) + 1) .
+            ' ' . $start->format('Y'),
+        'Annual' => $start->format('Y'),
+        default => $start->format('F j, Y') .
+            ' to ' . $end->format('F j, Y'),
+    };
+}
+
+function resolveReportPeriod(array $input): ?array
+{
+    $period = trim((string) ($input['report_period'] ?? 'Monthly'));
+
+    if (!in_array($period, getAllowedReportPeriods(), true)) {
+        return null;
+    }
+
+    $now = getReportNow();
+    $year = filter_var(
+        $input['period_year'] ?? $now->format('Y'),
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 2000, 'max_range' => 2100]]
+    );
+
+    $start = null;
+    $end = null;
+
+    if ($period === 'Daily') {
+        $start = parseReportDate(
+            trim((string) ($input['period_date'] ?? getReportToday()))
+        );
+        $end = $start;
+
+    } elseif ($period === 'Weekly') {
+        $selectedDate = parseReportDate(
+            trim((string) ($input['week_of'] ?? getReportToday()))
+        );
+
+        if ($selectedDate) {
+            $start = $selectedDate->modify('monday this week');
+            $end = $start->modify('+6 days');
+        }
+
+    } elseif ($period === 'Monthly') {
+        $month = filter_var(
+            $input['period_month'] ?? $now->format('n'),
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 12]]
+        );
+
+        if ($year !== false && $month !== false) {
+            $start = DateTimeImmutable::createFromFormat(
+                '!Y-n-j',
+                $year . '-' . $month . '-1',
+                getReportTimezone()
+            );
+            $end = $start->modify('last day of this month');
+        }
+
+    } elseif ($period === 'Quarterly') {
+        $quarter = filter_var(
+            $input['period_quarter'] ?? 1,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 4]]
+        );
+
+        if ($year !== false && $quarter !== false) {
+            $firstMonth = (($quarter - 1) * 3) + 1;
+            $start = DateTimeImmutable::createFromFormat(
+                '!Y-n-j',
+                $year . '-' . $firstMonth . '-1',
+                getReportTimezone()
+            );
+            $end = $start->modify('+3 months -1 day');
+        }
+
+    } elseif ($period === 'Annual') {
+        if ($year !== false) {
+            $start = DateTimeImmutable::createFromFormat(
+                '!Y-n-j',
+                $year . '-1-1',
+                getReportTimezone()
+            );
+            $end = DateTimeImmutable::createFromFormat(
+                '!Y-n-j',
+                $year . '-12-31',
+                getReportTimezone()
+            );
+        }
+
+    } else {
+        $customRange = normalizeReportDateRange(
+            $input['start_date'] ?? null,
+            $input['end_date'] ?? null
+        );
+
+        if ($customRange) {
+            $start = parseReportDate($customRange['start_date']);
+            $end = parseReportDate($customRange['end_date']);
+        }
+    }
+
+    if (!$start || !$end || $start > $end) {
+        return null;
+    }
+
+    $startDate = $start->format('Y-m-d');
+    $endDate = $end->format('Y-m-d');
+
+    return [
+        'report_period' => $period,
+        'period_label' => formatReportPeriodLabel(
+            $period,
+            $startDate,
+            $endDate
+        ),
+        'start_date' => $startDate,
+        'end_date' => $endDate,
+    ];
+}
+
+function getDefaultReportDateRange(): array
+{
+    return resolveReportPeriod([
+        'report_period' => 'Monthly',
+    ]);
+}
+
+function normalizeReportDateRange(
+    ?string $startDate,
+    ?string $endDate
+): ?array {
+    $startDate = trim((string) $startDate);
+    $endDate = trim((string) $endDate);
+
+    if ($startDate === '' && $endDate === '') {
+        return getDefaultReportDateRange();
+    }
+
+    if (
+        !parseReportDate($startDate) ||
+        !parseReportDate($endDate) ||
+        $startDate > $endDate
+    ) {
+        return null;
+    }
+
+    return [
+        'start_date' => $startDate,
+        'end_date' => $endDate,
+    ];
+}
+
+function buildPeriodReportMetrics(
+    string $reportType,
+    array $events
+): array {
+    $countEvents = static function (
+        ?string $module = null,
+        ?string $eventType = null,
+        ?string $outcome = null
+    ) use ($events): int {
+        $count = 0;
+
+        foreach ($events as $event) {
+            if ($module !== null && $event['module'] !== $module) {
+                continue;
+            }
+
+            if ($eventType !== null && $event['event_type'] !== $eventType) {
+                continue;
+            }
+
+            if ($outcome !== null && $event['outcome'] !== $outcome) {
+                continue;
+            }
+
+            $count++;
+        }
+
+        return $count;
+    };
+
+    $sumQuantity = static function (
+        string $module,
+        ?string $eventType = null,
+        ?string $direction = null
+    ) use ($events): int {
+        $total = 0;
+
+        foreach ($events as $event) {
+            if ($event['module'] !== $module) {
+                continue;
+            }
+
+            if ($eventType !== null && $event['event_type'] !== $eventType) {
+                continue;
+            }
+
+            $quantity = $event['quantity_delta'];
+
+            if ($quantity === null) {
+                continue;
+            }
+
+            $quantity = (int) $quantity;
+
+            if ($direction === 'positive' && $quantity <= 0) {
+                continue;
+            }
+
+            if ($direction === 'negative' && $quantity >= 0) {
+                continue;
+            }
+
+            $total += $quantity;
+        }
+
+        return $total;
+    };
+
+    return match ($reportType) {
+        'Procurement Report' => [
+            'Requests during period' => $countEvents('Procurement', 'Requested'),
+            'Approved during period' => $countEvents('Procurement', 'Approved'),
+            'Rejected during period' => $countEvents('Procurement', 'Rejected'),
+            'Delivered during period' => $countEvents('Procurement', 'Delivered'),
+            'Delivered quantity' => $sumQuantity('Procurement', 'Delivered'),
+        ],
+        'Inventory Report' => [
+            'Inventory events' => $countEvents('Inventory'),
+            'Stock increased' => $sumQuantity('Inventory', null, 'positive'),
+            'Stock decreased' => abs($sumQuantity('Inventory', null, 'negative')),
+            'Net Inventory Stock Change' => $sumQuantity('Inventory'),
+        ],
+        'Asset Report' => [
+            'Assets registered' => $countEvents('Asset Registry', 'Registered'),
+            'Assets assigned' => $countEvents('Asset Registry', 'Assigned'),
+            'Assets returned' => $countEvents('Asset Registry', 'Returned'),
+            'Asset status changes' => $countEvents('Asset Registry', 'Status Changed'),
+            'Assets deleted' => $countEvents('Asset Registry', 'Deleted'),
+        ],
+        'Maintenance Report' => [
+            'Maintenance scheduled' => $countEvents('Maintenance', 'Scheduled'),
+            'Maintenance started' => $countEvents('Maintenance', 'Started'),
+            'Maintenance completed' => $countEvents('Maintenance', 'Completed'),
+            'Maintenance updated' => $countEvents('Maintenance', 'Updated'),
+            'Maintenance deleted' => $countEvents('Maintenance', 'Deleted'),
+        ],
+'Audit Report' => [
+    'Audits scheduled' =>
+        $countEvents(
+            'Audit',
+            'Scheduled'
+        ),
+
+    'Audits started' =>
+        $countEvents(
+            'Audit',
+            'Started'
+        ),
+
+    'Audits completed' =>
+        $countEvents(
+            'Audit',
+            'Completed'
+        ),
+
+    'Verified findings' =>
+        $countEvents(
+            'Audit',
+            'Completed',
+            'Verified'
+        ),
+
+    'Missing findings' =>
+        $countEvents(
+            'Audit',
+            'Completed',
+            'Missing'
+        ),
+
+    'Damaged findings' =>
+        $countEvents(
+            'Audit',
+            'Completed',
+            'Damaged'
+        ),
+
+    'For Investigation findings' =>
+        $countEvents(
+            'Audit',
+            'Completed',
+            'For Investigation'
+        ),
+],
+        'Full System Report' => [
+            'Total business events' => count($events),
+            'Procurement events' => $countEvents('Procurement'),
+            'Inventory events' => $countEvents('Inventory'),
+            'Asset Registry events' => $countEvents('Asset Registry'),
+            'Maintenance events' => $countEvents('Maintenance'),
+            'Audit events' => $countEvents('Audit'),
+            'Procurement delivered quantity' => $sumQuantity('Procurement', 'Delivered'),
+            'Net Inventory Stock Change' => $sumQuantity('Inventory'),
+        ],
+        default => [],
+    };
+}
+
+function getReportEventModules(string $reportType): array
+{
+    return match ($reportType) {
+        'Asset Report' => ['Asset Registry'],
+        'Inventory Report' => ['Inventory'],
+        'Maintenance Report' => ['Maintenance'],
+        'Procurement Report' => ['Procurement'],
+        'Audit Report' => ['Audit'],
+        'Full System Report' => [
+            'Procurement',
+            'Inventory',
+            'Asset Registry',
+            'Maintenance',
+            'Audit',
+        ],
+        default => [],
+    };
+}
+
+function generateHistoricalActivityReport(
+    string $reportType,
+    string $startDate,
+    string $endDate
+): array {
+    if (!isAllowedReportType($reportType)) {
+        throw new InvalidArgumentException('INVALID_REPORT_TYPE');
+    }
+
+    $dateRange = normalizeReportDateRange($startDate, $endDate);
+
+    if ($dateRange === null) {
+        throw new InvalidArgumentException('INVALID_REPORT_DATE_RANGE');
+    }
+
+    $modules = getReportEventModules($reportType);
+
+    if (empty($modules)) {
+        throw new InvalidArgumentException('INVALID_REPORT_MODULES');
+    }
+
+    $modulePlaceholders = [];
+    $parameters = [
+        'start_date' => $dateRange['start_date'],
+        'end_date' => $dateRange['end_date'],
+    ];
+
+    foreach ($modules as $index => $module) {
+        $parameterName = 'module_' . $index;
+        $modulePlaceholders[] = ':' . $parameterName;
+        $parameters[$parameterName] = $module;
+    }
+
+    $pdo = getDbConnection();
+
+    $stmt = $pdo->prepare(
+        "SELECT
+            id,
+            module,
+            event_type,
+            business_id,
+            related_business_id,
+            record_name_snap,
+            category_snap,
+            event_date,
+            quantity_delta,
+            from_status,
+            to_status,
+            outcome,
+            performed_by,
+            description,
+            created_at
+         FROM property_events
+         WHERE event_date BETWEEN :start_date AND :end_date
+           AND module IN (" . implode(', ', $modulePlaceholders) . ")
+         ORDER BY event_date DESC, created_at DESC, id DESC"
+    );
+
+    $stmt->execute($parameters);
+    $events = $stmt->fetchAll();
+
+    $moduleTotals = [];
+    $eventTypeTotals = [];
+    $netInventoryStockChange = 0;
+
+    foreach ($events as &$event) {
+        $module = (string) $event['module'];
+        $eventType = (string) $event['event_type'];
+
+        $moduleTotals[$module] = ($moduleTotals[$module] ?? 0) + 1;
+        $eventTypeTotals[$eventType] = ($eventTypeTotals[$eventType] ?? 0) + 1;
+
+        if ($event['quantity_delta'] !== null) {
+            $event['quantity_delta'] = (int) $event['quantity_delta'];
+
+            if ($module === 'Inventory') {
+                $netInventoryStockChange += $event['quantity_delta'];
+            }
+        }
+    }
+
+    unset($event);
+
+    ksort($moduleTotals, SORT_NATURAL | SORT_FLAG_CASE);
+    arsort($eventTypeTotals, SORT_NUMERIC);
+
+    return [
+        'start_date' => $dateRange['start_date'],
+        'end_date' => $dateRange['end_date'],
+        'total_events' => count($events),
+        'net_inventory_stock_change' => $netInventoryStockChange,
+        'period_metrics' => buildPeriodReportMetrics(
+            $reportType,
+            $events
+        ),
+        'module_totals' => $moduleTotals,
+        'event_type_totals' => $eventTypeTotals,
+        'events' => $events,
+    ];
+}
+
+function describePropertyEvent(array $event): string
+{
+    $parts = [];
+
+    if ($event['quantity_delta'] !== null) {
+        $quantity = (int) $event['quantity_delta'];
+        $parts[] = 'Quantity ' . ($quantity > 0 ? '+' : '') . $quantity;
+    }
+
+    $fromStatus = trim((string) ($event['from_status'] ?? ''));
+    $toStatus = trim((string) ($event['to_status'] ?? ''));
+
+    if ($fromStatus !== '' || $toStatus !== '') {
+        $parts[] = ($fromStatus !== '' ? $fromStatus : 'None') .
+            ' → ' .
+            ($toStatus !== '' ? $toStatus : 'None');
+    }
+
+    $outcome = trim((string) ($event['outcome'] ?? ''));
+
+    if ($outcome !== '') {
+        $parts[] = 'Outcome: ' . $outcome;
+    }
+
+    $description = trim((string) ($event['description'] ?? ''));
+
+    if ($description !== '') {
+        $parts[] = $description;
+    }
+
+    return empty($parts) ? '—' : implode(' · ', $parts);
+}

@@ -4,10 +4,8 @@
 |--------------------------------------------------------------------------
 | PostgreSQL Business-ID / Inventory Helpers
 |--------------------------------------------------------------------------
-| Added during the phased Supabase migration.
-|
-| Existing session-based helpers above remain in place temporarily for
-| modules that have not yet been migrated.
+| Shared helpers for PostgreSQL-backed business IDs and Inventory stock
+| adjustments used by the persistent PCMS business modules.
 */
 
 function nextBusinessId(PDO $pdo, string $entity, string $prefix): string

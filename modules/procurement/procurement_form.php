@@ -144,6 +144,17 @@
 
     <div class="form-row">
 
+        <label>Delivery Date</label>
+
+        <input
+            type="date"
+            name="delivery_date"
+            value="<?= htmlspecialchars($procurement['delivery_date'] ?? '') ?>">
+
+    </div>
+
+    <div class="form-row">
+
         <label>Remarks</label>
 
         <textarea name="remarks"><?= htmlspecialchars($procurement['remarks'] ?? '') ?></textarea>

@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $id = filter_var(
     $_GET['id'] ?? null,
@@ -31,7 +32,10 @@ try {
     $inventoryStmt = $pdo->prepare(
         "SELECT
             id,
-            inventory_id
+            inventory_id,
+            asset_name,
+            category,
+            quantity
          FROM inventory
          WHERE id = :id
          FOR UPDATE"
@@ -71,6 +75,17 @@ try {
         header("Location: index.php?error=linked");
         exit;
     }
+
+    recordPropertyEvent($pdo, [
+        'module' => 'Inventory',
+        'event_type' => 'Deleted',
+        'business_id' => $inventory['inventory_id'],
+        'record_name_snap' => $inventory['asset_name'],
+        'category_snap' => $inventory['category'],
+        'event_date' => currentPropertyEventDate(),
+        'quantity_delta' => -(int) $inventory['quantity'],
+        'performed_by' => currentPropertyEventActor(),
+    ]);
 
     $deleteStmt = $pdo->prepare(
         "DELETE FROM inventory

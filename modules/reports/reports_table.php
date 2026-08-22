@@ -12,25 +12,26 @@ $selectedType =
 
 $descriptions = [
     'Asset Report' =>
-        'Current Asset Registry status, categories, locations, and custodians.',
+        'Current Asset Registry status plus registration, custody, and status-change history.',
 
     'Inventory Report' =>
-        'Current stock, low-stock items, out-of-stock items, and delivered Procurement activity.',
+        'Current stock plus dated additions, adjustments, and stock movements.',
 
     'Maintenance Report' =>
-        'Current Maintenance workload and recent Maintenance activity.',
+        'Current Maintenance workload plus dated lifecycle history.',
 
     'Procurement Report' =>
-        'Procurement request totals, statuses, suppliers, and recent activity.',
+        'Procurement totals plus dated request, approval, rejection, and delivery history.',
 
     'Audit Report' =>
-        'Audit totals, completion status, and recent Audit findings.',
+        'Audit totals plus dated lifecycle and finding history.',
 
     'Full System Report' =>
-        'Combined operational summary across all Property Custodian modules.'
+        'Combined current summary and dated activity across every Property Custodian module.'
 ];
 
 $reportRows = [];
+$defaultDateRange = getDefaultReportDateRange();
 
 foreach (getAllowedReportTypes() as $reportType) {
 
@@ -101,7 +102,10 @@ foreach (getAllowedReportTypes() as $reportType) {
 
 $query = http_build_query([
     'report_type' =>
-        $report['report_type']
+        $report['report_type'],
+    'report_period' => $defaultDateRange['report_period'],
+    'start_date' => $defaultDateRange['start_date'],
+    'end_date' => $defaultDateRange['end_date'],
 ]);
 
 ?>

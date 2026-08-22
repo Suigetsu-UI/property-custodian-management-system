@@ -9,6 +9,14 @@ $type =
 $generatedBy =
     trim($_GET['generated_by'] ?? '');
 
+$reportPeriod =
+    trim($_GET['report_period'] ?? 'Monthly');
+
+$dateRange = normalizeReportDateRange(
+    $_GET['start_date'] ?? null,
+    $_GET['end_date'] ?? null
+);
+
 if (!isAllowedReportType($type)) {
     header("Location: index.php");
     exit;
@@ -18,9 +26,32 @@ if ($generatedBy === '') {
     $generatedBy = 'On Demand';
 }
 
+if (!in_array($reportPeriod, getAllowedReportPeriods(), true)) {
+    header("Location: index.php?error=invalid_date_range");
+    exit;
+}
+
+if ($dateRange === null) {
+    header("Location: index.php?error=invalid_date_range");
+    exit;
+}
+
+$history = generateHistoricalActivityReport(
+    $type,
+    $dateRange['start_date'],
+    $dateRange['end_date']
+);
+
+$periodLabel = formatReportPeriodLabel(
+    $reportPeriod,
+    $dateRange['start_date'],
+    $dateRange['end_date']
+);
+
 $report = [
     'report_name' =>
-        $type . ' - ' . date('Y-m-d'),
+        $type . ' - ' .
+        $periodLabel,
 
     'report_type' =>
         $type,
@@ -29,7 +60,7 @@ $report = [
         $generatedBy,
 
     'date_generated' =>
-        date('Y-m-d'),
+        getReportToday(),
 
     'status' =>
         'Generated'
@@ -73,6 +104,21 @@ include "../../includes/header.php";
 </tr>
 
 <tr>
+<th>Report Period</th>
+<td><?= htmlspecialchars($reportPeriod) ?></td>
+</tr>
+
+<tr>
+<th>Activity Period</th>
+<td><?= htmlspecialchars($periodLabel) ?> (<?= htmlspecialchars($dateRange['start_date']) ?> to <?= htmlspecialchars($dateRange['end_date']) ?>)</td>
+</tr>
+
+<tr>
+<th>Historical Events</th>
+<td><?= (int) $history['total_events'] ?></td>
+</tr>
+
+<tr>
 <th>Status</th>
 <td><?= htmlspecialchars($report['status']) ?></td>
 </tr>
@@ -80,6 +126,30 @@ include "../../includes/header.php";
 </table>
 
 <br>
+
+<h2>Period Activity</h2>
+
+<p>
+<strong><?= htmlspecialchars($periodLabel) ?></strong>
+— figures below are derived only from events inside the selected period.
+</p>
+
+<table class="asset-table">
+
+<?php foreach ($history['period_metrics'] as $label => $value): ?>
+
+<tr>
+<th><?= htmlspecialchars($label) ?></th>
+<td><?= (int) $value > 0 && str_contains($label, 'Change') ? '+' : '' ?><?= (int) $value ?></td>
+</tr>
+
+<?php endforeach; ?>
+
+</table>
+
+<br>
+
+<h2>Current System Snapshot</h2>
 
 <?php if ($type === 'Procurement Report'): ?>
 
@@ -460,11 +530,143 @@ Pending: <?= $data['audit']['pending'] ?>)
 
 <br>
 
+<h3>Historical Activity</h3>
+
+<p>
+Events dated
+<strong><?= htmlspecialchars($history['start_date']) ?></strong>
+through
+<strong><?= htmlspecialchars($history['end_date']) ?></strong>.
+</p>
+
+<table class="asset-table">
+
+<tr>
+<th>Total Events</th>
+<td><?= (int) $history['total_events'] ?></td>
+</tr>
+
+<tr>
+<th>Net Inventory Stock Change</th>
+<td><?= $history['net_inventory_stock_change'] > 0 ? '+' : '' ?><?= (int) $history['net_inventory_stock_change'] ?></td>
+</tr>
+
+</table>
+
+<?php if ($type === 'Full System Report'): ?>
+
+<br>
+
+<h3>Events by Module</h3>
+
+<table class="asset-table">
+
+<?php foreach ($history['module_totals'] as $module => $count): ?>
+
+<tr>
+<th><?= htmlspecialchars($module) ?></th>
+<td><?= (int) $count ?></td>
+</tr>
+
+<?php endforeach; ?>
+
+<?php if (empty($history['module_totals'])): ?>
+
+<tr><td colspan="2">No historical activity in this period.</td></tr>
+
+<?php endif; ?>
+
+</table>
+
+<?php endif; ?>
+
+<br>
+
+<h3>Events by Type</h3>
+
+<table class="asset-table">
+
+<?php foreach ($history['event_type_totals'] as $eventType => $count): ?>
+
+<tr>
+<th><?= htmlspecialchars($eventType) ?></th>
+<td><?= (int) $count ?></td>
+</tr>
+
+<?php endforeach; ?>
+
+<?php if (empty($history['event_type_totals'])): ?>
+
+<tr><td colspan="2">No historical activity in this period.</td></tr>
+
+<?php endif; ?>
+
+</table>
+
+<br>
+
+<h3>Activity Timeline</h3>
+
+<div class="pcms-table-scroll">
+
+<table class="asset-table">
+
+<thead>
+<tr>
+<th>Date</th>
+<th>Module</th>
+<th>Event</th>
+<th>Record</th>
+<th>Change / Outcome</th>
+<th>Performed By</th>
+</tr>
+</thead>
+
+<tbody>
+
+<?php foreach ($history['events'] as $event): ?>
+
+<tr>
+<td><?= htmlspecialchars($event['event_date']) ?></td>
+<td><?= htmlspecialchars($event['module']) ?></td>
+<td><?= htmlspecialchars($event['event_type']) ?></td>
+<td>
+    <strong><?= htmlspecialchars($event['business_id']) ?></strong>
+    <?php if (!empty($event['record_name_snap'])): ?>
+    <br><?= htmlspecialchars($event['record_name_snap']) ?>
+    <?php endif; ?>
+    <?php if (!empty($event['related_business_id'])): ?>
+    <br><small>Related: <?= htmlspecialchars($event['related_business_id']) ?></small>
+    <?php endif; ?>
+</td>
+<td><?= htmlspecialchars(describePropertyEvent($event)) ?></td>
+<td><?= !empty($event['performed_by']) ? htmlspecialchars($event['performed_by']) : 'System' ?></td>
+</tr>
+
+<?php endforeach; ?>
+
+<?php if (empty($history['events'])): ?>
+
+<tr><td colspan="6">No historical events were recorded in this date range.</td></tr>
+
+<?php endif; ?>
+
+</tbody>
+
+</table>
+
+</div>
+
+<br>
+
 <?php
 
 $downloadQuery = http_build_query([
     'report_type' => $type,
-    'generated_by' => $generatedBy
+    'generated_by' => $generatedBy,
+    'report_period' => $reportPeriod,
+    'start_date' => $dateRange['start_date'],
+    'end_date' => $dateRange['end_date'],
 ]);
 
 ?>
@@ -482,6 +684,14 @@ Back to Reports
 >
 Download
 </a>
+
+<button
+    type="button"
+    class="btn btn-primary pcms-print-trigger"
+    onclick="window.print()"
+>
+Print
+</button>
 
 </div>
 

@@ -2,6 +2,7 @@
 
 require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . "/../../includes/event_functions.php";
 
 $idRaw = trim((string) ($_POST['id'] ?? ''));
 $isEdit = $idRaw !== '';
@@ -111,7 +112,12 @@ try {
          * operate against one stable record.
          */
         $stmt = $pdo->prepare(
-            "SELECT inventory_id
+            "SELECT
+                inventory_id,
+                asset_name,
+                category,
+                quantity,
+                condition
              FROM inventory
              WHERE id = :id
              FOR UPDATE"
@@ -179,6 +185,22 @@ try {
             'id' => $id
         ]);
 
+        $quantityDelta = $quantity - (int) $existing['quantity'];
+
+        if ($quantityDelta !== 0) {
+            recordPropertyEvent($pdo, [
+                'module' => 'Inventory',
+                'event_type' => 'Adjusted',
+                'business_id' => $existing['inventory_id'],
+                'record_name_snap' => $assetName,
+                'category_snap' => $category,
+                'event_date' => currentPropertyEventDate(),
+                'quantity_delta' => $quantityDelta,
+                'performed_by' => currentPropertyEventActor(),
+                'description' => 'Manual Inventory quantity adjustment.',
+            ]);
+        }
+
     } else {
 
         /*
@@ -236,6 +258,17 @@ try {
             'category' => $category,
             'quantity' => $quantity,
             'condition' => $condition
+        ]);
+
+        recordPropertyEvent($pdo, [
+            'module' => 'Inventory',
+            'event_type' => 'Added',
+            'business_id' => $submittedId,
+            'record_name_snap' => $assetName,
+            'category_snap' => $category,
+            'event_date' => currentPropertyEventDate(),
+            'quantity_delta' => $quantity,
+            'performed_by' => currentPropertyEventActor(),
         ]);
 
         /*

@@ -1265,6 +1265,16 @@ body.pcms-modal-open {
     letter-spacing: 0;
 }
 
+.pcms-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: var(--radius-sm);
+}
+
+.pcms-table-scroll .asset-table {
+    min-width: 940px;
+}
+
 .pcms-report-loading {
     display: flex;
     min-height: 320px;
@@ -1282,6 +1292,77 @@ body.pcms-modal-open {
     border-top-color: var(--accent-primary);
     border-radius: 50%;
     animation: pcms-spin 0.8s linear infinite;
+}
+
+@media print {
+    @page {
+        margin: 14mm;
+    }
+
+    body {
+        background: #fff !important;
+        color: #111 !important;
+    }
+
+    .top-header,
+    .sidebar,
+    .sidebar-overlay,
+    .pcms-modal-header,
+    .pcms-modal-footer,
+    .pcms-print-trigger,
+    .main-content > a.btn {
+        display: none !important;
+    }
+
+    .layout,
+    .main-content {
+        display: block !important;
+        width: 100% !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
+    body.pcms-modal-open .main-content > * {
+        display: none !important;
+    }
+
+    body.pcms-modal-open .main-content > #viewReportModal {
+        display: block !important;
+    }
+
+    #viewReportModal,
+    #viewReportModal .pcms-modal-dialog,
+    #viewReportModal .pcms-modal-body {
+        position: static !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+    }
+
+    .pcms-table-scroll {
+        overflow: visible !important;
+    }
+
+    .pcms-table-scroll .asset-table {
+        min-width: 0 !important;
+    }
+
+    .asset-table {
+        font-size: 10pt;
+    }
+
+    .asset-table tr {
+        break-inside: avoid;
+    }
 }
 
 @keyframes pcms-spin {

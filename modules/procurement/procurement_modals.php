@@ -19,6 +19,7 @@ $procurementStatuses = ['Pending', 'Approved', 'Rejected', 'Delivered'];
     <div class="form-row"><label for="procurementStatus">Status</label><select id="procurementStatus" name="status"><?php foreach ($procurementStatuses as $value): ?><option value="<?= htmlspecialchars($value) ?>"><?= htmlspecialchars($value) ?></option><?php endforeach; ?></select></div>
     <div class="form-row"><label for="procurementApprovedBy">Approved By</label><input type="text" id="procurementApprovedBy" name="approved_by"></div>
     <div class="form-row"><label for="procurementApprovalDate">Approval Date</label><input type="date" id="procurementApprovalDate" name="approval_date"></div>
+    <div class="form-row"><label for="procurementDeliveryDate">Delivery Date</label><input type="date" id="procurementDeliveryDate" name="delivery_date"></div>
     <div class="form-row pcms-form-span-2"><label for="procurementRemarks">Remarks</label><textarea id="procurementRemarks" name="remarks" rows="3"></textarea></div>
 </div></div>
 <footer class="pcms-modal-footer"><button type="button" class="btn btn-outline" data-modal-close>Cancel</button><button type="submit" class="btn btn-primary">Save Procurement</button></footer>
@@ -33,6 +34,9 @@ $procurementStatuses = ['Pending', 'Approved', 'Rejected', 'Delivered'];
     <div><dt>Category</dt><dd data-procurement-view="category">—</dd></div><div><dt>Quantity</dt><dd data-procurement-view="quantity">—</dd></div>
     <div><dt>Supplier</dt><dd data-procurement-view="supplier">—</dd></div><div><dt>Requested By</dt><dd data-procurement-view="requested_by">—</dd></div>
     <div><dt>Request Date</dt><dd data-procurement-view="request_date">—</dd></div><div><dt>Status</dt><dd data-procurement-view="status">—</dd></div>
+</dl></section>
+<section class="pcms-detail-section"><h3>Delivery Information</h3><dl class="pcms-detail-grid">
+    <div><dt>Delivery Date</dt><dd data-procurement-view="delivery_date">Not Yet Delivered</dd></div><div><dt>Delivered Quantity</dt><dd data-procurement-view="delivered_quantity">0</dd></div>
 </dl></section>
 <section class="pcms-detail-section"><h3>Approval Information</h3><dl class="pcms-detail-grid">
     <div><dt>Approved By</dt><dd data-procurement-view="approved_by">Not Yet Approved</dd></div><div><dt>Approval Date</dt><dd data-procurement-view="approval_date">Not Yet Approved</dd></div>
@@ -58,6 +62,7 @@ $procurementStatuses = ['Pending', 'Approved', 'Rejected', 'Delivered'];
     <div class="form-row"><label for="editProcurementStatus">Status</label><select id="editProcurementStatus" name="status"><?php foreach ($procurementStatuses as $value): ?><option value="<?= htmlspecialchars($value) ?>"><?= htmlspecialchars($value) ?></option><?php endforeach; ?></select></div>
     <div class="form-row"><label for="editProcurementApprovedBy">Approved By</label><input type="text" id="editProcurementApprovedBy" name="approved_by"></div>
     <div class="form-row"><label for="editProcurementApprovalDate">Approval Date</label><input type="date" id="editProcurementApprovalDate" name="approval_date"></div>
+    <div class="form-row"><label for="editProcurementDeliveryDate">Delivery Date</label><input type="date" id="editProcurementDeliveryDate" name="delivery_date"></div>
     <div class="form-row pcms-form-span-2"><label for="editProcurementRemarks">Remarks</label><textarea id="editProcurementRemarks" name="remarks" rows="3"></textarea></div>
 </div></div>
 <footer class="pcms-modal-footer"><button type="button" class="btn btn-outline" data-modal-close>Cancel</button><button type="submit" class="btn btn-warning">Update Procurement</button></footer>
