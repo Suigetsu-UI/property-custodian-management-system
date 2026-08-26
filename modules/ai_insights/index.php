@@ -229,4 +229,3 @@ $assetLabel = trim(
 <script src="<?= BASE_URL ?>assets/js/ai_insights.js?v=<?= filemtime(__DIR__ . '/../../assets/js/ai_insights.js') ?>"></script>
 
 <?php include '../../includes/footer.php'; ?>
-
