@@ -4,13 +4,10 @@ require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 require_once __DIR__ . "/../../includes/event_functions.php";
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: index.php");
-    exit;
-}
+requireValidAccessCsrfPost();
 
 $id = filter_var(
-    $_GET['id'] ?? null,
+    $_POST['id'] ?? null,
     FILTER_VALIDATE_INT,
     [
         'options' => [

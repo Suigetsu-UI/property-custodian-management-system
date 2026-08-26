@@ -1,14 +1,8 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Start Session
-|--------------------------------------------------------------------------
-*/
+require_once __DIR__ . '/../includes/session.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+$pcmsSessionValid = startPcmsSession();
 
 /*
 |--------------------------------------------------------------------------
@@ -16,9 +10,12 @@ if (session_status() === PHP_SESSION_NONE) {
 |--------------------------------------------------------------------------
 */
 
-if (!isset($_SESSION['user'])) {
+if (!$pcmsSessionValid || !isset($_SESSION['user'])) {
 
-    header("Location: /property-custodian-management-system/auth/login.php");
+    header(
+        "Location: /property-custodian-management-system/auth/login.php?error=" .
+        ($pcmsSessionValid ? 'session' : 'expired')
+    );
     exit();
 
 }
@@ -29,13 +26,17 @@ require_once __DIR__ . '/../includes/access_control.php';
 $sessionEmployeeID = trim((string) (
     $_SESSION['user']['employee_id'] ?? ''
 ));
+$sessionVersion = (int) (
+    $_SESSION['user']['session_version'] ?? 0
+);
 $verifiedUser = null;
 
 if ($sessionEmployeeID !== '') {
     try {
         $pdo = getDbConnection();
         $stmt = $pdo->prepare(
-            "SELECT id, employee_id, full_name, role, is_active
+            "SELECT id, employee_id, full_name, role, is_active,
+                    session_version
              FROM users
              WHERE employee_id = :employee_id"
         );
@@ -48,13 +49,25 @@ if ($sessionEmployeeID !== '') {
     }
 }
 
-if (!$verifiedUser || !isUserAccountActive($verifiedUser['is_active'])) {
-    $_SESSION = [];
-    session_destroy();
+if (
+    !$verifiedUser ||
+    !isUserAccountActive($verifiedUser['is_active']) ||
+    $sessionVersion < 1 ||
+    !hash_equals(
+        (string) $verifiedUser['session_version'],
+        (string) $sessionVersion
+    )
+) {
+    destroyPcmsSession();
 
     header(
         "Location: /property-custodian-management-system/auth/login.php?error=" .
-        ($verifiedUser ? 'inactive' : 'session')
+        (
+            $verifiedUser &&
+            !isUserAccountActive($verifiedUser['is_active'])
+                ? 'inactive'
+                : 'session'
+        )
     );
     exit();
 }
@@ -64,6 +77,7 @@ $_SESSION['user'] = [
     'employee_id' => $verifiedUser['employee_id'],
     'name' => $verifiedUser['full_name'],
     'role' => $verifiedUser['role'],
+    'session_version' => (int) $verifiedUser['session_version'],
 ];
 
 ?>

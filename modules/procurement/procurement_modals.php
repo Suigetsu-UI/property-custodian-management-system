@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . "/../../auth/check_auth.php";
+
 $procurementCategories = ['Computer', 'Furniture', 'Office Equipment', 'Electronics'];
 $procurementStatuses = ['Pending', 'Approved', 'Rejected', 'Delivered'];
 ?>
@@ -6,6 +8,7 @@ $procurementStatuses = ['Pending', 'Approved', 'Rejected', 'Delivered'];
 <div id="procurementModal" class="modal pcms-modal pcms-modal--lg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="addProcurementTitle">
 <div class="modal-content pcms-modal-dialog">
 <form id="addProcurementForm" class="pcms-modal-form" method="POST" action="save_procurement.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 <input type="hidden" name="id" value="">
 <header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Procurement</span><h2 id="addProcurementTitle">Add Procurement</h2><p>Create a request using the existing approval and Inventory delivery workflow.</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Add Procurement"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body"><div class="pcms-form-grid">
@@ -49,6 +52,7 @@ $procurementStatuses = ['Pending', 'Approved', 'Rejected', 'Delivered'];
 <div id="editProcurementModal" class="modal pcms-modal pcms-modal--lg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editProcurementTitle">
 <div class="modal-content pcms-modal-dialog">
 <form id="editProcurementForm" class="pcms-modal-form" method="POST" action="save_procurement.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 <input type="hidden" id="editProcurementRowID" name="id">
 <header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Procurement</span><h2 id="editProcurementTitle">Edit Procurement</h2><p>Changes continue through the existing status transition and Inventory transaction rules.</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Edit Procurement"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body"><div class="pcms-form-grid">

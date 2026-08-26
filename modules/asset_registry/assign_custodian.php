@@ -83,8 +83,11 @@ include "../../includes/sidebar.php";
 
 <form
     method="POST"
-    action="save_assignment.php?id=<?= (int) $id ?>"
+    action="save_assignment.php"
 >
+
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+<input type="hidden" name="id" value="<?= (int) $id ?>">
 
 <label>Asset ID</label>
 

@@ -6,15 +6,7 @@ require_once __DIR__ . "/../../includes/database.php";
 
 requireAdministrator();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
-    exit;
-}
-
-if (!isValidAccessCsrfToken($_POST['csrf_token'] ?? null)) {
-    header('Location: index.php?error=invalid');
-    exit;
-}
+requireValidAccessCsrfPost();
 
 $id = filter_var(
     $_POST['id'] ?? null,
@@ -64,6 +56,10 @@ try {
 
     $isCurrentAccount = $user['employee_id'] ===
         ($_SESSION['user']['employee_id'] ?? '');
+    $securityStateChanged =
+        $password !== '' ||
+        $role !== $user['role'] ||
+        $isActive !== isUserAccountActive($user['is_active']);
 
     if ($isCurrentAccount && ($role !== 'Administrator' || !$isActive)) {
         $pdo->rollBack();
@@ -121,14 +117,20 @@ try {
         );
     }
 
-    $sql .= ' WHERE id = :id';
+    if ($securityStateChanged) {
+        $sql .= ', session_version = session_version + 1';
+    }
+
+    $sql .= ' WHERE id = :id RETURNING session_version';
     $updateStmt = $pdo->prepare($sql);
     $updateStmt->execute($params);
+    $updatedSessionVersion = (int) $updateStmt->fetchColumn();
     $pdo->commit();
 
     if ($isCurrentAccount) {
         $_SESSION['user']['name'] = $fullName;
         $_SESSION['user']['role'] = $role;
+        $_SESSION['user']['session_version'] = $updatedSessionVersion;
     }
 } catch (Throwable $error) {
     if ($pdo instanceof PDO && $pdo->inTransaction()) {

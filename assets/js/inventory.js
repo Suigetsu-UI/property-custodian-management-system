@@ -69,6 +69,9 @@
             try {
                 var response = await fetch('next_inventory_id.php', {
                     method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    },
                     cache: 'no-store'
                 });
                 if (!response.ok) throw new Error('Could not generate Inventory ID.');

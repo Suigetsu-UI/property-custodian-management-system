@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . "/../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 
 $pdo = getDbConnection();
@@ -9,7 +10,7 @@ $isEdit =
     is_array($audit);
 
 $formAction = $isEdit
-    ? "edit_audit.php?id=" . (int) $audit['id']
+    ? "edit_audit.php"
     : "schedule_audit.php";
 
 $auditIdValue = $isEdit
@@ -41,6 +42,11 @@ if (!$isEdit) {
     method="POST"
     action="<?= htmlspecialchars($formAction) ?>"
 >
+
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+<?php if ($isEdit): ?>
+<input type="hidden" name="id" value="<?= (int) $audit['id'] ?>">
+<?php endif; ?>
 
 <div class="form-row">
 

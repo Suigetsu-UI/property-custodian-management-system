@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . "/../../auth/check_auth.php";
+
 if (!isset($auditAssets)) {
     require_once __DIR__ . "/../../includes/database.php";
     $auditPdo = getDbConnection();
@@ -10,6 +12,7 @@ $auditStatuses = ['Scheduled', 'Ongoing', 'Completed'];
 
 <div id="auditModal" class="modal pcms-modal pcms-modal--lg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="addAuditTitle">
 <div class="modal-content pcms-modal-dialog"><form id="addAuditForm" class="pcms-modal-form" method="POST" action="schedule_audit.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 <header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Audit</span><h2 id="addAuditTitle">Add Audit</h2><p>Record a physical verification against a registered Asset.</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Add Audit"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body"><div class="pcms-form-grid">
     <div class="form-row"><label for="auditID">Audit ID</label><input type="text" id="auditID" name="audit_id" readonly></div>
@@ -45,6 +48,8 @@ $auditStatuses = ['Scheduled', 'Ongoing', 'Completed'];
 
 <div id="editAuditModal" class="modal pcms-modal pcms-modal--lg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editAuditTitle">
 <div class="modal-content pcms-modal-dialog"><form id="editAuditForm" class="pcms-modal-form" method="POST" action="edit_audit.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+<input type="hidden" id="editAuditRowID" name="id">
 <input type="hidden" id="editAuditAssetID" name="asset_id">
 <header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Audit</span><h2 id="editAuditTitle">Edit Audit</h2><p>The linked Asset remains fixed while the existing audit update rules are preserved.</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Edit Audit"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body"><div class="pcms-form-grid">

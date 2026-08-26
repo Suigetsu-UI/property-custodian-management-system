@@ -1,6 +1,9 @@
+<?php require_once __DIR__ . "/../../auth/check_auth.php"; ?>
+
 <div id="reportModal" class="modal pcms-modal pcms-modal--md" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="generateReportTitle">
 <div class="modal-content pcms-modal-dialog">
 <form id="generateReportForm" class="pcms-modal-form" method="POST" action="generate_report.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 <header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Reports</span><h2 id="generateReportTitle">Generate New Report</h2><p>Select a standard reporting period or define a custom date range.</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Generate Report"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body"><div class="pcms-form-grid">
     <div class="form-row pcms-form-span-2"><label for="generateReportType">Report Type</label><select id="generateReportType" name="report_type" required><?php foreach (getAllowedReportTypes() as $reportType): ?><option value="<?= htmlspecialchars($reportType) ?>"><?= htmlspecialchars($reportType) ?></option><?php endforeach; ?></select></div>

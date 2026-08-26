@@ -168,6 +168,14 @@ CREATE TABLE public."inventory" (
     "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE public."login_attempts" (
+    "attempt_key" character varying(80) NOT NULL,
+    "failure_count" integer DEFAULT 1 NOT NULL,
+    "window_started_at" timestamp with time zone DEFAULT now() NOT NULL,
+    "locked_until" timestamp with time zone,
+    "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE public."maintenance" (
     "id" integer DEFAULT nextval('maintenance_id_seq1'::regclass) NOT NULL,
     "maintenance_id" character varying(20) NOT NULL,
@@ -226,7 +234,8 @@ CREATE TABLE public."users" (
     "password_hash" character varying(255) NOT NULL,
     "role" character varying(50) DEFAULT 'Administrator'::character varying NOT NULL,
     "created_at" timestamp with time zone DEFAULT now() NOT NULL,
-    "is_active" boolean DEFAULT true NOT NULL
+    "is_active" boolean DEFAULT true NOT NULL,
+    "session_version" integer DEFAULT 1 NOT NULL
 );
 
 -- Sequence ownership
@@ -242,6 +251,7 @@ ALTER SEQUENCE public."users_id_seq" OWNED BY public."users"."id";
 ALTER TABLE ONLY public."assets" ADD CONSTRAINT "assets_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."audits" ADD CONSTRAINT "audits_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."inventory" ADD CONSTRAINT "inventory_pkey" PRIMARY KEY (id);
+ALTER TABLE ONLY public."login_attempts" ADD CONSTRAINT "login_attempts_pkey" PRIMARY KEY (attempt_key);
 ALTER TABLE ONLY public."maintenance" ADD CONSTRAINT "maintenance_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."procurement" ADD CONSTRAINT "procurement_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."property_events" ADD CONSTRAINT "property_events_pkey" PRIMARY KEY (id);
@@ -267,6 +277,10 @@ ALTER TABLE ONLY public."audits"
 ALTER TABLE ONLY public."inventory"
     ADD CONSTRAINT "inventory_quantity_check"
     CHECK (quantity >= 0);
+
+ALTER TABLE ONLY public."login_attempts"
+    ADD CONSTRAINT "login_attempts_failure_count_check"
+    CHECK (failure_count > 0);
 
 ALTER TABLE ONLY public."maintenance"
     ADD CONSTRAINT "maintenance_maintenance_type_check"
@@ -296,6 +310,10 @@ ALTER TABLE ONLY public."users"
     ADD CONSTRAINT "users_role_check"
     CHECK (role::text = ANY (ARRAY['Administrator'::character varying, 'Property Custodian'::character varying]::text[]));
 
+ALTER TABLE ONLY public."users"
+    ADD CONSTRAINT "users_session_version_check"
+    CHECK (session_version > 0);
+
 -- Foreign keys
 ALTER TABLE ONLY public."assets"
     ADD CONSTRAINT "assets_inventory_id_fkey"
@@ -317,6 +335,7 @@ CREATE INDEX idx_audits_result ON public.audits USING btree (result);
 CREATE UNIQUE INDEX inventory_name_category_uidx ON public.inventory USING btree (lower((asset_name)::text), lower((category)::text));
 CREATE INDEX idx_maintenance_asset_id ON public.maintenance USING btree (asset_id);
 CREATE INDEX idx_maintenance_status ON public.maintenance USING btree (status);
+CREATE INDEX login_attempts_updated_at_idx ON public.login_attempts USING btree (updated_at);
 CREATE INDEX idx_procurement_status ON public.procurement USING btree (status);
 CREATE INDEX property_events_business_id_idx ON public.property_events USING btree (business_id);
 CREATE INDEX property_events_event_date_idx ON public.property_events USING btree (event_date);
@@ -324,5 +343,53 @@ CREATE INDEX property_events_module_date_idx ON public.property_events USING btr
 CREATE INDEX property_events_related_business_id_idx ON public.property_events USING btree (related_business_id);
 CREATE UNIQUE INDEX users_employee_id_lower_key ON public.users USING btree (lower((employee_id)::text));
 CREATE INDEX users_role_active_idx ON public.users USING btree (role, is_active);
+
+-- Server-side application role and Data API boundary
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_roles WHERE rolname = 'pcms_app'
+    ) THEN
+        CREATE ROLE pcms_app
+            NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
+            NOINHERIT NOBYPASSRLS;
+    END IF;
+END
+$$;
+
+GRANT CONNECT ON DATABASE postgres TO pcms_app;
+GRANT USAGE ON SCHEMA public TO pcms_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO pcms_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO pcms_app;
+
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+    REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+    REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pcms_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO pcms_app;
+
+ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.login_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.maintenance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.procurement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.property_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY pcms_app_all_access ON public.assets FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+CREATE POLICY pcms_app_all_access ON public.audits FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+CREATE POLICY pcms_app_all_access ON public.inventory FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+CREATE POLICY pcms_app_all_access ON public.login_attempts FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+CREATE POLICY pcms_app_all_access ON public.maintenance FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+CREATE POLICY pcms_app_all_access ON public.procurement FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+CREATE POLICY pcms_app_all_access ON public.property_events FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+CREATE POLICY pcms_app_all_access ON public.users FOR ALL TO pcms_app USING (true) WITH CHECK (true);
 
 COMMIT;

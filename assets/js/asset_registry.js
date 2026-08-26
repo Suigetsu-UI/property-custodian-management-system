@@ -204,7 +204,7 @@
     }
 
     function populateEditModal(asset) {
-        editAssetForm.action = 'update_asset.php?id=' + encodeURIComponent(asset.id);
+        document.getElementById('editAssetRowID').value = asset.id || '';
         document.getElementById('editAssetID').value = asset.asset_id || '';
         document.getElementById('editAssetName').value = asset.asset_name || '';
         setSelectValue(
@@ -221,7 +221,7 @@
 
     function populateAssignModal(asset) {
         assignCustodianForm.reset();
-        assignCustodianForm.action = 'save_assignment.php?id=' + encodeURIComponent(asset.id);
+        document.getElementById('assignAssetRowID').value = asset.id || '';
         document.getElementById('assignAssetLabel').textContent = [
             asset.asset_id,
             asset.asset_name
@@ -326,6 +326,9 @@
             try {
                 var response = await fetch('next_asset_id.php', {
                     method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    },
                     cache: 'no-store'
                 });
 

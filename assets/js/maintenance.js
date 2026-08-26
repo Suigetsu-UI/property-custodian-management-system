@@ -34,7 +34,7 @@
     }
 
     function populateEdit(record) {
-        editForm.action = 'edit_maintenance.php?id=' + encodeURIComponent(record.id);
+        document.getElementById('editMaintenanceRowID').value = record.id || '';
         document.getElementById('editMaintenanceAssetID').value = record.asset_id || '';
         document.getElementById('editMaintenanceID').value = record.maintenance_id || '';
         document.getElementById('editMaintenanceAsset').value = [record.asset_business_id, record.current_asset_name].filter(Boolean).join(' — ');
@@ -75,7 +75,11 @@
         idField.value = '';
         addButton.disabled = true;
         try {
-            var response = await fetch('next_maintenance_id.php', {method: 'POST', cache: 'no-store'});
+            var response = await fetch('next_maintenance_id.php', {
+                method: 'POST',
+                headers: {'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content},
+                cache: 'no-store'
+            });
             if (!response.ok) throw new Error('Could not generate Maintenance ID.');
             var data = await response.json();
             if (!data || typeof data.maintenance_id !== 'string' || !data.maintenance_id) throw new Error('Invalid Maintenance ID response.');

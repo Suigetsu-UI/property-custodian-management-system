@@ -839,6 +839,10 @@ body {
     font-weight: 600;
 }
 
+.pcms-inline-action {
+    display: inline;
+}
+
 .asset-filter-summary {
     display: flex;
     align-items: center;

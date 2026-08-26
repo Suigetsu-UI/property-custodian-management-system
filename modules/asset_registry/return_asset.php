@@ -4,8 +4,10 @@ require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 require_once __DIR__ . "/../../includes/event_functions.php";
 
+requireValidAccessCsrfPost();
+
 $id = filter_var(
-    $_GET['id'] ?? null,
+    $_POST['id'] ?? null,
     FILTER_VALIDATE_INT,
     [
         'options' => [

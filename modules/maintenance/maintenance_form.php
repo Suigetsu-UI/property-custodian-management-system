@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . "/../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 
 $pdo = getDbConnection();
@@ -9,7 +10,7 @@ $isEdit =
     is_array($maintenance);
 
 $formAction = $isEdit
-    ? "edit_maintenance.php?id=" . (int) $maintenance['id']
+    ? "edit_maintenance.php"
     : "save_maintenance.php";
 
 $maintenanceIdValue = $isEdit
@@ -42,6 +43,11 @@ if (!$isEdit) {
     method="POST"
     action="<?= htmlspecialchars($formAction) ?>"
 >
+
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+<?php if ($isEdit): ?>
+<input type="hidden" name="id" value="<?= (int) $maintenance['id'] ?>">
+<?php endif; ?>
 
 <h2><?= $isEdit ? 'Edit Maintenance' : 'Add Maintenance' ?></h2>
 

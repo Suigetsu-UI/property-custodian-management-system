@@ -33,7 +33,7 @@
     }
 
     function populateEdit(record) {
-        editForm.action = 'edit_audit.php?id=' + encodeURIComponent(record.id);
+        document.getElementById('editAuditRowID').value = record.id || '';
         document.getElementById('editAuditAssetID').value = record.asset_id || '';
         document.getElementById('editAuditID').value = record.audit_id || '';
         document.getElementById('editAuditAsset').value = [record.asset_business_id, record.current_asset_name].filter(Boolean).join(' — ');
@@ -76,7 +76,11 @@
         idField.value = '';
         addButton.disabled = true;
         try {
-            var response = await fetch('next_audit_id.php', {method: 'POST', cache: 'no-store'});
+            var response = await fetch('next_audit_id.php', {
+                method: 'POST',
+                headers: {'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content},
+                cache: 'no-store'
+            });
             if (!response.ok) throw new Error('Could not generate Audit ID.');
             var data = await response.json();
             if (!data || typeof data.audit_id !== 'string' || !data.audit_id) throw new Error('Invalid Audit ID response.');

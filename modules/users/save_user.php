@@ -6,15 +6,7 @@ require_once __DIR__ . "/../../includes/database.php";
 
 requireAdministrator();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
-    exit;
-}
-
-if (!isValidAccessCsrfToken($_POST['csrf_token'] ?? null)) {
-    header('Location: index.php?error=invalid');
-    exit;
-}
+requireValidAccessCsrfPost();
 
 $employeeID = trim((string) ($_POST['employee_id'] ?? ''));
 $fullName = trim((string) ($_POST['full_name'] ?? ''));

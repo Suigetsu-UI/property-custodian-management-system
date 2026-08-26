@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . "/../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 
 $pdo = getDbConnection();
@@ -122,21 +123,17 @@ $assetPayload = htmlspecialchars(
 
 <?php elseif ($status === 'Assigned'): ?>
 
-<a
-    href="return_asset.php?id=<?= (int) $asset['id'] ?>"
-    class="btn btn-warning"
-    onclick="return confirm('Return this asset? It will become Available again.');"
->
-    Return Asset
-</a>
+<form method="POST" action="return_asset.php" class="pcms-inline-action" onsubmit="return confirm('Return this asset? It will become Available again.');">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+    <input type="hidden" name="id" value="<?= (int) $asset['id'] ?>">
+    <button type="submit" class="btn btn-warning">Return Asset</button>
+</form>
 
-<a
-    href="delete_asset.php?id=<?= (int) $asset['id'] ?>"
-    class="btn btn-danger"
-    onclick="return confirm('Are you sure you want to delete this asset?');"
->
-    Delete
-</a>
+<form method="POST" action="delete_asset.php" class="pcms-inline-action" onsubmit="return confirm('Are you sure you want to delete this asset?');">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+    <input type="hidden" name="id" value="<?= (int) $asset['id'] ?>">
+    <button type="submit" class="btn btn-danger">Delete</button>
+</form>
 
 <?php else: ?>
 
@@ -148,13 +145,11 @@ $assetPayload = htmlspecialchars(
     Assign
 </a>
 
-<a
-    href="delete_asset.php?id=<?= (int) $asset['id'] ?>"
-    class="btn btn-danger"
-    onclick="return confirm('Are you sure you want to delete this asset?');"
->
-    Delete
-</a>
+<form method="POST" action="delete_asset.php" class="pcms-inline-action" onsubmit="return confirm('Are you sure you want to delete this asset?');">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+    <input type="hidden" name="id" value="<?= (int) $asset['id'] ?>">
+    <button type="submit" class="btn btn-danger">Delete</button>
+</form>
 
 <?php endif; ?>
 

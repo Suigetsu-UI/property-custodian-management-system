@@ -1,6 +1,9 @@
+<?php require_once __DIR__ . "/../../auth/check_auth.php"; ?>
+
 <div id="inventoryModal" class="modal pcms-modal pcms-modal--md" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="addInventoryTitle">
 <div class="modal-content pcms-modal-dialog">
 <form id="addInventoryForm" class="pcms-modal-form" method="POST" action="save_inventory.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 <input type="hidden" name="id" value="">
 <header class="pcms-modal-header">
     <div><span class="pcms-modal-eyebrow">Inventory</span><h2 id="addInventoryTitle">Add Inventory</h2><p>Create a stock record that can later be registered as an Asset.</p></div>
@@ -38,6 +41,7 @@
 <div id="editInventoryModal" class="modal pcms-modal pcms-modal--md" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editInventoryTitle">
 <div class="modal-content pcms-modal-dialog">
 <form id="editInventoryForm" class="pcms-modal-form" method="POST" action="save_inventory.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 <input type="hidden" id="editInventoryRowID" name="id">
 <header class="pcms-modal-header">
     <div><span class="pcms-modal-eyebrow">Inventory</span><h2 id="editInventoryTitle">Edit Inventory</h2><p>Update stock details while keeping the Inventory ID unchanged.</p></div>

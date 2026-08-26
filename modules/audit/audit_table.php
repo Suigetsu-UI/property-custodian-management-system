@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . "/../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 
 $pdo = getDbConnection();
@@ -169,13 +170,11 @@ View
 Edit
 </a>
 
-<a
-    href="delete_audit.php?id=<?= (int) $item['id'] ?>"
-    class="btn btn-danger"
-    onclick="return confirm('Delete this audit record?');"
->
-Delete
-</a>
+<form method="POST" action="delete_audit.php" class="pcms-inline-action" onsubmit="return confirm('Delete this audit record?');">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+    <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
+    <button type="submit" class="btn btn-danger">Delete</button>
+</form>
 
 </td>
 

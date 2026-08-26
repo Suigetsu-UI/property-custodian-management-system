@@ -1,6 +1,9 @@
 <?php
 
-session_start();
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/access_control.php';
+
+startPcmsSession();
 
 if (isset($_SESSION['user'])) {
     header('Location: ../dashboard.php');
@@ -10,6 +13,7 @@ if (isset($_SESSION['user'])) {
 $error = match ($_GET['error'] ?? '') {
     'inactive' => 'This account is inactive. Contact the System Administrator.',
     'session' => 'Your session could not be verified. Please sign in again.',
+    'expired' => 'Your session expired. Please sign in again.',
     'invalid', '1' => 'Invalid Employee ID or Password.',
     default => '',
 };
@@ -71,6 +75,8 @@ $loginCss = BASE_URL . 'auth/login.css?v=20260729';
 
             <form method="POST" action="authenticate.php" class="login-form" novalidate>
 
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+
                 <div class="login-field">
                     <label for="employee_id">Employee ID</label>
                     <div class="login-input">
@@ -104,7 +110,6 @@ $loginCss = BASE_URL . 'auth/login.css?v=20260729';
                         <input type="checkbox" name="remember">
                         <span>Remember me</span>
                     </label>
-                    <a class="login-forgot" href="forgot_password.php">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="login-submit">

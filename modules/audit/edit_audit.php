@@ -4,8 +4,14 @@ require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 require_once __DIR__ . "/../../includes/event_functions.php";
 
+$isPost = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
+
+if ($isPost) {
+    requireValidAccessCsrfPost();
+}
+
 $id = filter_var(
-    $_GET['id'] ?? null,
+    $isPost ? ($_POST['id'] ?? null) : ($_GET['id'] ?? null),
     FILTER_VALIDATE_INT,
     [
         'options' => [
@@ -21,7 +27,7 @@ if ($id === false) {
 
 $pdo = getDbConnection();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($isPost) {
 
     $auditor =
         trim($_POST['auditor'] ?? '');

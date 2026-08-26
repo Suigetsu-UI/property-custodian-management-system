@@ -4,6 +4,8 @@ require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 require_once __DIR__ . "/../../includes/event_functions.php";
 
+requireValidAccessCsrfPost();
+
 $idRaw = trim((string) ($_POST['id'] ?? ''));
 $isEdit = $idRaw !== '';
 

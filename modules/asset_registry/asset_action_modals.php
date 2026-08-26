@@ -1,3 +1,5 @@
+<?php require_once __DIR__ . "/../../auth/check_auth.php"; ?>
+
 <div
     id="viewAssetModal"
     class="modal pcms-modal pcms-modal--lg"
@@ -110,6 +112,9 @@
     method="POST"
     action="update_asset.php"
 >
+
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+<input type="hidden" id="editAssetRowID" name="id">
 
 <header class="pcms-modal-header">
 
@@ -233,6 +238,9 @@
     method="POST"
     action="save_assignment.php"
 >
+
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+<input type="hidden" id="assignAssetRowID" name="id">
 
 <header class="pcms-modal-header">
 

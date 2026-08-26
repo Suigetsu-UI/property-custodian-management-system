@@ -75,3 +75,25 @@ function isValidAccessCsrfToken(?string $token): bool
         is_string($token) &&
         hash_equals($sessionToken, $token);
 }
+
+function getSubmittedAccessCsrfToken(): ?string
+{
+    $token = $_POST['csrf_token'] ??
+        ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? null);
+
+    return is_string($token) ? $token : null;
+}
+
+function requireValidAccessCsrfPost(): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        http_response_code(405);
+        header('Allow: POST');
+        exit('Method not allowed.');
+    }
+
+    if (!isValidAccessCsrfToken(getSubmittedAccessCsrfToken())) {
+        http_response_code(403);
+        exit('Invalid security token. Please return to PCMS and try again.');
+    }
+}

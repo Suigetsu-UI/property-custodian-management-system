@@ -110,7 +110,11 @@
             addButton.disabled = true;
 
             try {
-                var response = await fetch('next_procurement_id.php', {method: 'POST', cache: 'no-store'});
+                var response = await fetch('next_procurement_id.php', {
+                    method: 'POST',
+                    headers: {'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content},
+                    cache: 'no-store'
+                });
                 if (!response.ok) throw new Error('Could not generate Procurement ID.');
                 var data = await response.json();
                 if (!data || typeof data.procurement_id !== 'string' || !data.procurement_id) throw new Error('Invalid Procurement ID response.');

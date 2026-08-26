@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . "/../../auth/check_auth.php";
+
 if (!isset($maintenanceAssets)) {
     require_once __DIR__ . "/../../includes/database.php";
     $maintenancePdo = getDbConnection();
@@ -12,6 +14,7 @@ $maintenanceStatuses = ['Scheduled', 'In Progress', 'Completed'];
 
 <div id="maintenanceModal" class="modal pcms-modal pcms-modal--lg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="addMaintenanceTitle">
 <div class="modal-content pcms-modal-dialog"><form id="addMaintenanceForm" class="pcms-modal-form" method="POST" action="save_maintenance.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 <header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Maintenance</span><h2 id="addMaintenanceTitle">Add Maintenance</h2><p>Schedule work against an eligible registered Asset.</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Add Maintenance"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body"><div class="pcms-form-grid">
     <div class="form-row"><label for="maintenanceID">Maintenance ID</label><input type="text" id="maintenanceID" name="maintenance_id" readonly></div>
@@ -41,6 +44,8 @@ $maintenanceStatuses = ['Scheduled', 'In Progress', 'Completed'];
 
 <div id="editMaintenanceModal" class="modal pcms-modal pcms-modal--md" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editMaintenanceTitle">
 <div class="modal-content pcms-modal-dialog"><form id="editMaintenanceForm" class="pcms-modal-form" method="POST" action="edit_maintenance.php">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+<input type="hidden" id="editMaintenanceRowID" name="id">
 <input type="hidden" id="editMaintenanceAssetID" name="asset_id">
 <header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Maintenance</span><h2 id="editMaintenanceTitle">Edit Maintenance</h2><p>The linked Asset remains fixed while schedule and status are updated.</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Edit Maintenance"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body"><div class="pcms-form-grid">

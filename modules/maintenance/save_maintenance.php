@@ -4,10 +4,7 @@ require_once "../../auth/check_auth.php";
 require_once __DIR__ . "/../../includes/database.php";
 require_once __DIR__ . "/../../includes/event_functions.php";
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: index.php");
-    exit;
-}
+requireValidAccessCsrfPost();
 
 $maintenanceBusinessId =
     trim($_POST['maintenance_id'] ?? '');

@@ -5,6 +5,8 @@ require_once __DIR__ . "/../../includes/asset_functions.php";
 require_once __DIR__ . "/../../includes/database.php";
 require_once __DIR__ . "/../../includes/event_functions.php";
 
+requireValidAccessCsrfPost();
+
 $id = isset($_POST['id']) && $_POST['id'] !== ''
     ? (int) $_POST['id']
     : null;

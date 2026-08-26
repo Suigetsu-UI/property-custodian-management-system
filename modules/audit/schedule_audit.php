@@ -9,6 +9,8 @@ $pdo = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    requireValidAccessCsrfPost();
+
     $auditBusinessId =
         trim($_POST['audit_id'] ?? '');
 
