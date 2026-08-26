@@ -16,6 +16,7 @@ $navItems = [
     ['label' => 'Procurement', 'href' => BASE_URL . 'modules/procurement/index.php', 'icon' => 'fa-cart-shopping', 'match' => '/procurement/'],
     ['label' => 'Audit', 'href' => BASE_URL . 'modules/audit/index.php', 'icon' => 'fa-clipboard-check', 'match' => '/audit/'],
     ['label' => 'Reports', 'href' => BASE_URL . 'modules/reports/index.php', 'icon' => 'fa-chart-bar', 'match' => '/reports/'],
+    ['label' => 'AI Insights', 'href' => BASE_URL . 'modules/ai_insights/index.php', 'icon' => 'fa-brain', 'match' => '/ai_insights/'],
 ];
 
 if (isAdministrator()) {
