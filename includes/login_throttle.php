@@ -24,6 +24,31 @@ function loginThrottleKeys(string $employeeId, string $ipAddress): array
     ])));
 }
 
+function acquireLoginThrottleLocks(
+    PDO $pdo,
+    string $employeeId,
+    string $ipAddress
+): void {
+    if (!$pdo->inTransaction()) {
+        throw new LogicException(
+            'Login throttle locks require an active database transaction.'
+        );
+    }
+
+    $keys = loginThrottleKeys($employeeId, $ipAddress);
+    sort($keys, SORT_STRING);
+
+    $stmt = $pdo->prepare(
+        'SELECT pg_advisory_xact_lock(
+            hashtextextended(:attempt_key, 0)
+        )'
+    );
+
+    foreach ($keys as $key) {
+        $stmt->execute(['attempt_key' => $key]);
+    }
+}
+
 function isLoginAttemptBlocked(
     PDO $pdo,
     string $employeeId,
