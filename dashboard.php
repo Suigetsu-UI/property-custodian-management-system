@@ -53,6 +53,17 @@ $kpiCards = [
 ];
 ?>
 <?php foreach ($kpiCards as [$key, $label, $icon, $tone]): ?>
+<?php if ($key === 'needs_attention'): ?>
+<a class="dashboard-kpi dashboard-kpi-link" data-tone="<?= htmlspecialchars($tone) ?>" href="<?= BASE_URL ?>modules/ai_insights/index.php?level=attention">
+    <span class="dashboard-kpi-icon" aria-hidden="true">
+        <i class="fas <?= htmlspecialchars($icon) ?>"></i>
+    </span>
+    <div>
+        <strong><?= (int) $dashboard['kpis'][$key] ?></strong>
+        <span><?= htmlspecialchars($label) ?></span>
+    </div>
+</a>
+<?php else: ?>
 <article class="dashboard-kpi" data-tone="<?= htmlspecialchars($tone) ?>">
     <span class="dashboard-kpi-icon" aria-hidden="true">
         <i class="fas <?= htmlspecialchars($icon) ?>"></i>
@@ -62,6 +73,7 @@ $kpiCards = [
         <span><?= htmlspecialchars($label) ?></span>
     </div>
 </article>
+<?php endif; ?>
 <?php endforeach; ?>
 </section>
 
@@ -140,7 +152,7 @@ $operationalCards = [
     </div>
 
     <?php if ($highestAttention): ?>
-    <div class="dashboard-ai-highest">
+    <a class="dashboard-ai-highest dashboard-ai-highest-link" href="<?= BASE_URL ?>modules/ai_insights/index.php?asset=<?= rawurlencode($highestAttention['asset_id']) ?>">
         <span>Highest Attention</span>
         <strong><?= htmlspecialchars($highestAttention['asset_id']) ?></strong>
         <p>
@@ -148,16 +160,16 @@ $operationalCards = [
             <span aria-hidden="true">&mdash;</span>
             <?= htmlspecialchars($highestAttention['level']) ?>
         </p>
-        <small><?= htmlspecialchars($highestAttention['primary_factor']) ?></small>
-    </div>
+        <small><?= htmlspecialchars(dashboardAiFactorLabel($highestAttention['primary_factor'])) ?></small>
+    </a>
     <?php else: ?>
     <div class="dashboard-empty-state compact">
         <p>No registered Assets are available for analysis.</p>
     </div>
     <?php endif; ?>
 
-    <a class="dashboard-panel-link" href="<?= BASE_URL ?>modules/ai_insights/index.php">
-        View AI Insights <i class="fas fa-arrow-right" aria-hidden="true"></i>
+    <a class="dashboard-panel-link" href="<?= BASE_URL ?>modules/ai_insights/index.php?level=attention">
+        Review Attention Queue <i class="fas fa-arrow-right" aria-hidden="true"></i>
     </a>
 </section>
 </div>

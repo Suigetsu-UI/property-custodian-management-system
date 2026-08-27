@@ -7,6 +7,17 @@ const DASHBOARD_TIMEZONE = 'Asia/Manila';
 const DASHBOARD_ATTENTION_LIMIT = 8;
 const DASHBOARD_RECENT_EVENT_LIMIT = 8;
 
+function dashboardAiFactorLabel(string $factor): string
+{
+    return match ($factor) {
+        'Audit / current condition' => 'Asset condition',
+        'Corrective maintenance' => 'Maintenance history',
+        'Recurring attention states' => 'Repeated attention needs',
+        'Asset age' => 'Asset age',
+        default => 'No major concern found',
+    };
+}
+
 function getDashboardToday(): string
 {
     return (new DateTimeImmutable(
@@ -141,11 +152,14 @@ function getDashboardAttentionItems(
             $level === 'Critical' ? 1 : 3,
             strtolower($level),
             $assetId . ' requires ' . $level . ' attention',
-            (string) ($analysis['primary_factor'] ?? 'Recorded risk factors'),
+            dashboardAiFactorLabel(
+                (string) ($analysis['primary_factor'] ?? '')
+            ),
             $assetId,
             $assetId,
             $today,
-            BASE_URL . 'modules/ai_insights/index.php',
+            BASE_URL . 'modules/ai_insights/index.php?asset=' .
+                rawurlencode($assetId),
             (int) ($analysis['score'] ?? 0)
         );
     }
