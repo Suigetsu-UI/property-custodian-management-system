@@ -8,12 +8,14 @@ requireAdministrator();
 
 $pdo = getDbConnection();
 $stmt = $pdo->query(
-    "SELECT id, employee_id, full_name, role, is_active, created_at
+    "SELECT id, employee_id, full_name, role, is_active, created_at,
+            session_version, mfa_enabled, mfa_secret_enc,
+            mfa_enrolled_at
      FROM users
      ORDER BY lower(full_name), lower(employee_id)"
 );
 $users = $stmt->fetchAll();
-$currentEmployeeID = (string) ($_SESSION['user']['employee_id'] ?? '');
+$currentUserID = (int) ($_SESSION['user']['id'] ?? 0);
 $csrfToken = getAccessCsrfToken();
 
 $messages = [
@@ -24,6 +26,12 @@ $messages = [
     'self_access' => ['error', 'You cannot demote or deactivate your own administrator account.'],
     'last_admin' => ['error', 'At least one active System Administrator must remain.'],
     'save_failed' => ['error', 'The user account could not be saved. Please try again.'],
+    'mfa_reset' => ['success', 'MFA was reset and the user\'s existing sessions were revoked.'],
+    'mfa_verification' => ['error', 'The security verification could not be completed.'],
+    'mfa_blocked' => ['error', 'Too many verification attempts. Please wait 15 minutes and sign in again.'],
+    'mfa_self' => ['error', 'You cannot reset MFA for your own Administrator account.'],
+    'mfa_unavailable' => ['error', 'MFA reset is unavailable because the user account state changed.'],
+    'mfa_reset_failed' => ['error', 'MFA could not be reset. Please try again.'],
 ];
 $messageKey = (string) ($_GET['message'] ?? $_GET['error'] ?? '');
 $message = $messages[$messageKey] ?? null;
@@ -84,6 +92,7 @@ include "../../includes/header.php";
     <th>Full Name</th>
     <th>Role</th>
     <th>Status</th>
+    <th>MFA Status</th>
     <th>Created</th>
     <th>Actions</th>
 </tr>
@@ -94,13 +103,24 @@ include "../../includes/header.php";
 <?php foreach ($users as $user): ?>
 
 <?php
+$mfaEnabled = isUserAccountActive($user['mfa_enabled']);
+$mfaHasState = $mfaEnabled ||
+    trim((string) ($user['mfa_secret_enc'] ?? '')) !== '';
+$mfaStatus = $mfaEnabled
+    ? 'Enabled'
+    : ($mfaHasState ? 'Pending' : 'Not Enrolled');
+$isSelf = (int) $user['id'] === $currentUserID;
 $userRecord = [
     'id' => (int) $user['id'],
     'employee_id' => $user['employee_id'],
     'full_name' => $user['full_name'],
     'role' => $user['role'],
     'is_active' => isUserAccountActive($user['is_active']),
-    'is_self' => $user['employee_id'] === $currentEmployeeID,
+    'is_self' => $isSelf,
+    'session_version' => (int) $user['session_version'],
+    'mfa_enabled' => $mfaEnabled,
+    'mfa_has_state' => $mfaHasState,
+    'mfa_status' => $mfaStatus,
 ];
 $userPayload = htmlspecialchars(
     json_encode(
@@ -121,24 +141,39 @@ $status = isUserAccountActive($user['is_active']) ? 'Active' : 'Inactive';
     <td><strong><?= htmlspecialchars($user['employee_id']) ?></strong></td>
     <td>
         <?= htmlspecialchars($user['full_name']) ?>
-        <?php if ($user['employee_id'] === $currentEmployeeID): ?>
+        <?php if ($isSelf): ?>
         <br><small>Current account</small>
         <?php endif; ?>
     </td>
     <td><?= htmlspecialchars(userRoleLabel($user['role'])) ?></td>
     <td><span class="pcms-status-badge" data-status="<?= strtolower($status) ?>"><?= $status ?></span></td>
+    <td>
+        <span
+            class="pcms-status-badge"
+            data-status="<?= $mfaEnabled ? 'active' : ($mfaHasState ? 'pending' : 'inactive') ?>"
+        >
+            <?= htmlspecialchars($mfaStatus) ?>
+        </span>
+    </td>
     <td><?= htmlspecialchars((new DateTimeImmutable($user['created_at']))->format('M j, Y')) ?></td>
     <td>
         <button type="button" class="btn btn-warning" data-user-action="edit">
             Edit Access
         </button>
+        <?php if ($mfaHasState && !$isSelf): ?>
+        <button type="button" class="btn btn-danger" data-user-action="reset-mfa">
+            Reset MFA
+        </button>
+        <?php elseif ($mfaHasState && $isSelf): ?>
+        <small class="user-mfa-self-notice">Self-reset is not permitted.</small>
+        <?php endif; ?>
     </td>
 </tr>
 
 <?php endforeach; ?>
 
 <tr id="userFilterEmptyState" <?= empty($users) ? '' : 'hidden' ?>>
-    <td colspan="6" style="text-align:center;padding:40px;">
+    <td colspan="7" style="text-align:center;padding:40px;">
         No user accounts match the current filters.
     </td>
 </tr>

@@ -108,6 +108,15 @@ CREATE SEQUENCE public."property_events_id_seq"
     CACHE 1
     NO CYCLE;
 
+CREATE SEQUENCE public."security_events_id_seq"
+    AS bigint
+    START WITH 1
+    INCREMENT BY 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    CACHE 1
+    NO CYCLE;
+
 CREATE SEQUENCE public."users_id_seq"
     AS integer
     START WITH 1
@@ -235,7 +244,20 @@ CREATE TABLE public."users" (
     "role" character varying(50) DEFAULT 'Administrator'::character varying NOT NULL,
     "created_at" timestamp with time zone DEFAULT now() NOT NULL,
     "is_active" boolean DEFAULT true NOT NULL,
-    "session_version" integer DEFAULT 1 NOT NULL
+    "session_version" integer DEFAULT 1 NOT NULL,
+    "mfa_enabled" boolean DEFAULT false NOT NULL,
+    "mfa_secret_enc" text,
+    "mfa_enrolled_at" timestamp with time zone,
+    "mfa_last_used_step" bigint
+);
+
+CREATE TABLE public."security_events" (
+    "id" bigint DEFAULT nextval('security_events_id_seq'::regclass) NOT NULL,
+    "event_type" character varying(50) NOT NULL,
+    "actor_user_id" integer,
+    "target_user_id" integer NOT NULL,
+    "description" text,
+    "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
 -- Sequence ownership
@@ -245,6 +267,7 @@ ALTER SEQUENCE public."inventory_id_seq1" OWNED BY public."inventory"."id";
 ALTER SEQUENCE public."maintenance_id_seq1" OWNED BY public."maintenance"."id";
 ALTER SEQUENCE public."procurement_id_seq1" OWNED BY public."procurement"."id";
 ALTER SEQUENCE public."property_events_id_seq" OWNED BY public."property_events"."id";
+ALTER SEQUENCE public."security_events_id_seq" OWNED BY public."security_events"."id";
 ALTER SEQUENCE public."users_id_seq" OWNED BY public."users"."id";
 
 -- Primary keys
@@ -255,6 +278,7 @@ ALTER TABLE ONLY public."login_attempts" ADD CONSTRAINT "login_attempts_pkey" PR
 ALTER TABLE ONLY public."maintenance" ADD CONSTRAINT "maintenance_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."procurement" ADD CONSTRAINT "procurement_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."property_events" ADD CONSTRAINT "property_events_pkey" PRIMARY KEY (id);
+ALTER TABLE ONLY public."security_events" ADD CONSTRAINT "security_events_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."users" ADD CONSTRAINT "users_pkey" PRIMARY KEY (id);
 
 -- Unique constraints
@@ -306,6 +330,27 @@ ALTER TABLE ONLY public."property_events"
     ADD CONSTRAINT "property_events_module_check"
     CHECK (module::text = ANY (ARRAY['Procurement'::character varying, 'Inventory'::character varying, 'Asset Registry'::character varying, 'Maintenance'::character varying, 'Audit'::character varying]::text[]));
 
+ALTER TABLE ONLY public."security_events"
+    ADD CONSTRAINT "security_events_type_check"
+    CHECK (event_type::text = ANY (ARRAY['MFA_ENROLLED'::character varying, 'MFA_DISABLED'::character varying, 'MFA_RESET_BY_ADMIN'::character varying, 'MFA_CHALLENGE_BLOCKED'::character varying]::text[]));
+
+ALTER TABLE ONLY public."users"
+    ADD CONSTRAINT "users_mfa_state_check"
+    CHECK (
+        (
+            mfa_enabled = false
+            AND mfa_enrolled_at IS NULL
+            AND mfa_last_used_step IS NULL
+        )
+        OR
+        (
+            mfa_enabled = true
+            AND mfa_secret_enc IS NOT NULL
+            AND mfa_enrolled_at IS NOT NULL
+            AND mfa_last_used_step IS NOT NULL
+        )
+    );
+
 ALTER TABLE ONLY public."users"
     ADD CONSTRAINT "users_role_check"
     CHECK (role::text = ANY (ARRAY['Administrator'::character varying, 'Property Custodian'::character varying]::text[]));
@@ -327,6 +372,14 @@ ALTER TABLE ONLY public."maintenance"
     ADD CONSTRAINT "maintenance_asset_id_fkey"
     FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE RESTRICT;
 
+ALTER TABLE ONLY public."security_events"
+    ADD CONSTRAINT "security_events_actor_user_fk"
+    FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public."security_events"
+    ADD CONSTRAINT "security_events_target_user_fk"
+    FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE RESTRICT;
+
 -- Additional indexes
 CREATE INDEX idx_assets_inventory_id ON public.assets USING btree (inventory_id);
 CREATE INDEX idx_assets_status ON public.assets USING btree (status);
@@ -341,6 +394,9 @@ CREATE INDEX property_events_business_id_idx ON public.property_events USING btr
 CREATE INDEX property_events_event_date_idx ON public.property_events USING btree (event_date);
 CREATE INDEX property_events_module_date_idx ON public.property_events USING btree (module, event_date);
 CREATE INDEX property_events_related_business_id_idx ON public.property_events USING btree (related_business_id);
+CREATE INDEX security_events_actor_user_idx ON public.security_events USING btree (actor_user_id);
+CREATE INDEX security_events_created_at_idx ON public.security_events USING btree (created_at DESC);
+CREATE INDEX security_events_target_user_idx ON public.security_events USING btree (target_user_id);
 CREATE UNIQUE INDEX users_employee_id_lower_key ON public.users USING btree (lower((employee_id)::text));
 CREATE INDEX users_role_active_idx ON public.users USING btree (role, is_active);
 
@@ -351,11 +407,14 @@ BEGIN
         SELECT 1 FROM pg_roles WHERE rolname = 'pcms_app'
     ) THEN
         CREATE ROLE pcms_app
-            NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
+            LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
             NOINHERIT NOBYPASSRLS;
     END IF;
 END
 $$;
+
+-- Configure the pcms_app password separately through an approved secret channel.
+-- No database password belongs in this schema file or in Git.
 
 GRANT CONNECT ON DATABASE postgres TO pcms_app;
 GRANT USAGE ON SCHEMA public TO pcms_app;
@@ -381,6 +440,7 @@ ALTER TABLE public.login_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.maintenance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.procurement ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.property_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY pcms_app_all_access ON public.assets FOR ALL TO pcms_app USING (true) WITH CHECK (true);
@@ -390,6 +450,15 @@ CREATE POLICY pcms_app_all_access ON public.login_attempts FOR ALL TO pcms_app U
 CREATE POLICY pcms_app_all_access ON public.maintenance FOR ALL TO pcms_app USING (true) WITH CHECK (true);
 CREATE POLICY pcms_app_all_access ON public.procurement FOR ALL TO pcms_app USING (true) WITH CHECK (true);
 CREATE POLICY pcms_app_all_access ON public.property_events FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+CREATE POLICY security_events_pcms_app_select ON public.security_events FOR SELECT TO pcms_app USING (true);
+CREATE POLICY security_events_pcms_app_insert ON public.security_events FOR INSERT TO pcms_app WITH CHECK (true);
 CREATE POLICY pcms_app_all_access ON public.users FOR ALL TO pcms_app USING (true) WITH CHECK (true);
+
+-- Security events are append-only for the application role.
+REVOKE ALL ON TABLE public.security_events FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON SEQUENCE public.security_events_id_seq FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT ON TABLE public.security_events TO pcms_app;
+GRANT USAGE, SELECT ON SEQUENCE public.security_events_id_seq TO pcms_app;
+REVOKE UPDATE, DELETE, TRUNCATE ON TABLE public.security_events FROM pcms_app;
 
 COMMIT;

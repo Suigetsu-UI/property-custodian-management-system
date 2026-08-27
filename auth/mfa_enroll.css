@@ -1,0 +1,105 @@
+body.pcms-login .mfa-enrollment-card {
+    max-width: 540px;
+}
+
+body.pcms-login .mfa-shield-badge {
+    color: #7c2d91;
+    font-size: 32px;
+}
+
+body.pcms-login .mfa-setup-steps {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 20px;
+    padding-left: 22px;
+    color: #4b5563;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+body.pcms-login .mfa-setup-details {
+    display: grid;
+    gap: 1px;
+    margin: 0 0 22px;
+    overflow: hidden;
+    border: 1px solid #eadde8;
+    border-radius: 14px;
+    background: #eadde8;
+}
+
+body.pcms-login .mfa-setup-details > div {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 14px;
+    padding: 12px 14px;
+    background: #fff;
+}
+
+body.pcms-login .mfa-setup-details dt {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+body.pcms-login .mfa-setup-details dd {
+    min-width: 0;
+    margin: 0;
+    color: #2b1222;
+    font-size: 13px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+body.pcms-login .mfa-secret-row dd {
+    color: #7c2d91;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+}
+
+body.pcms-login .mfa-code-form {
+    margin-top: 4px;
+}
+
+body.pcms-login .mfa-code-form .login-input input {
+    letter-spacing: 0.28em;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+body.pcms-login .mfa-fresh-login-note {
+    margin: 16px 0 0;
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+body.pcms-login .mfa-cancel-form {
+    margin-top: 12px;
+    text-align: center;
+}
+
+body.pcms-login .mfa-cancel-button {
+    padding: 6px;
+    border: 0;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+body.pcms-login .mfa-cancel-button:hover {
+    color: #7c2d91;
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    body.pcms-login .mfa-setup-details > div {
+        grid-template-columns: 1fr;
+        gap: 5px;
+    }
+}

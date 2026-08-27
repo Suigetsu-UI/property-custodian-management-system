@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/access_control.php';
 require_once __DIR__ . '/../includes/login_throttle.php';
+require_once __DIR__ . '/../includes/pending_mfa.php';
 
 startPcmsSession();
 requireValidAccessCsrfPost();
@@ -13,6 +14,8 @@ $password = (string) ($_POST["password"] ?? '');
 $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
 
 $authenticatedUser = null;
+$pendingMfaUser = null;
+$pendingMfaPurpose = null;
 $pdo = null;
 
 try {
@@ -25,7 +28,7 @@ try {
     if (!isLoginAttemptBlocked($pdo, $employeeID, $clientIp)) {
         $stmt = $pdo->prepare(
             "SELECT id, employee_id, full_name, role, password_hash, is_active,
-                    session_version
+                    session_version, mfa_enabled
              FROM users
              WHERE employee_id = :employee_id"
         );
@@ -41,8 +44,21 @@ try {
             password_verify($password, $row['password_hash']) &&
             isUserAccountActive($row['is_active'])
         ) {
-            $authenticatedUser = $row;
-            clearLoginAccountFailures($pdo, $employeeID);
+            $mfaStage = determineMfaAuthenticationStage(
+                (string) $row['role'],
+                $row['mfa_enabled']
+            );
+
+            if ($mfaStage === PCMS_MFA_AUTH_STAGE_ENROLL) {
+                $pendingMfaUser = $row;
+                $pendingMfaPurpose = PCMS_PENDING_MFA_PURPOSE_ENROLL;
+            } elseif ($mfaStage === PCMS_MFA_AUTH_STAGE_CHALLENGE) {
+                $pendingMfaUser = $row;
+                $pendingMfaPurpose = PCMS_PENDING_MFA_PURPOSE_CHALLENGE;
+            } elseif ($mfaStage === PCMS_MFA_AUTH_STAGE_COMPLETE) {
+                $authenticatedUser = $row;
+                clearLoginAccountFailures($pdo, $employeeID);
+            }
         } else {
             recordLoginFailure($pdo, $employeeID, $clientIp);
         }
@@ -60,10 +76,31 @@ try {
 
     // Fail closed. Do not expose database or credential details.
     $authenticatedUser = null;
+    $pendingMfaUser = null;
+    $pendingMfaPurpose = null;
+}
+
+if ($pendingMfaUser !== null && $pendingMfaPurpose !== null) {
+    session_regenerate_id(true);
+    beginPendingMfaSession(
+        (int) $pendingMfaUser['id'],
+        (int) $pendingMfaUser['session_version'],
+        $pendingMfaPurpose
+    );
+
+    header(
+        'Location: ' . (
+            $pendingMfaPurpose === PCMS_PENDING_MFA_PURPOSE_ENROLL
+                ? 'mfa_enroll.php'
+                : 'mfa_challenge.php'
+        )
+    );
+    exit();
 }
 
 if ($authenticatedUser !== null) {
     session_regenerate_id(true);
+    clearPendingMfaSession();
 
     $now = time();
 

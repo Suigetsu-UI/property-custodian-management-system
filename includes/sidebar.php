@@ -17,6 +17,7 @@ $navItems = [
     ['label' => 'Audit', 'href' => BASE_URL . 'modules/audit/index.php', 'icon' => 'fa-clipboard-check', 'match' => '/audit/'],
     ['label' => 'Reports', 'href' => BASE_URL . 'modules/reports/index.php', 'icon' => 'fa-chart-bar', 'match' => '/reports/'],
     ['label' => 'AI Insights', 'href' => BASE_URL . 'modules/ai_insights/index.php', 'icon' => 'fa-brain', 'match' => '/ai_insights/'],
+    ['label' => 'Account Security', 'href' => BASE_URL . 'modules/account/security.php', 'icon' => 'fa-user-shield', 'match' => '/account/'],
 ];
 
 if (isAdministrator()) {
@@ -43,16 +44,25 @@ function pcmsNavIsActive(string $requestUri, string $match): bool
             <div class="sidebar-brand-text">
                 <h2>Navigation</h2>
             </div>
+            <button
+                type="button"
+                class="sidebar-close"
+                id="sidebarClose"
+                aria-label="Close navigation"
+                title="Close navigation"
+            >
+                <i class="fas fa-xmark" aria-hidden="true"></i>
+            </button>
         </div>
 
-        <nav>
+        <nav id="primaryNavigation" aria-label="Primary navigation">
             <ul>
                 <?php foreach ($navItems as $item): ?>
                     <?php $isActive = pcmsNavIsActive($requestUri, $item['match']); ?>
                     <li>
                         <a href="<?= htmlspecialchars($item['href']) ?>" class="<?= $isActive ? 'active' : '' ?>">
-                            <i class="fas <?= htmlspecialchars($item['icon']) ?>"></i>
-                            <?= htmlspecialchars($item['label']) ?>
+                            <i class="fas <?= htmlspecialchars($item['icon']) ?>" aria-hidden="true"></i>
+                            <span><?= htmlspecialchars($item['label']) ?></span>
                         </a>
                     </li>
                 <?php endforeach; ?>

@@ -18,6 +18,34 @@
 </div>
 </div>
 
+<div id="resetMfaModal" class="modal pcms-modal pcms-modal--md" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="resetMfaTitle">
+<div class="modal-content pcms-modal-dialog">
+<form id="resetMfaForm" class="pcms-modal-form" method="POST" action="reset_mfa.php" novalidate>
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+<input type="hidden" id="resetMfaTargetID" name="target_user_id">
+<input type="hidden" id="resetMfaTargetSessionVersion" name="target_session_version">
+<header class="pcms-modal-header">
+    <div><span class="pcms-modal-eyebrow">Administrator Recovery</span><h2 id="resetMfaTitle">Reset Multi-Factor Authentication</h2><p>Remove another user's current or pending authenticator enrollment.</p></div>
+    <button type="button" class="close-modal" data-modal-close aria-label="Close Reset MFA"><span aria-hidden="true">&times;</span></button>
+</header>
+<div class="pcms-modal-body">
+    <div class="pcms-form-notice pcms-form-notice--warning">
+        Resetting MFA will revoke the user's existing sessions. Administrators must enroll again at their next login.
+    </div>
+    <div class="pcms-detail-grid user-reset-mfa-target">
+        <div><span>Target User</span><strong id="resetMfaTargetName"></strong></div>
+        <div><span>MFA Status</span><strong id="resetMfaTargetStatus"></strong></div>
+    </div>
+    <div class="pcms-form-grid">
+        <div class="form-row"><label for="resetMfaPassword">Your Current Password</label><input type="password" id="resetMfaPassword" name="current_password" maxlength="72" autocomplete="current-password" required></div>
+        <div class="form-row"><label for="resetMfaTotpCode">Your Current Authenticator Code</label><input type="text" id="resetMfaTotpCode" name="totp_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="000000" required></div>
+    </div>
+</div>
+<footer class="pcms-modal-footer"><button type="button" class="btn btn-outline" data-modal-close>Cancel</button><button type="submit" class="btn btn-danger">Reset MFA and Revoke Sessions</button></footer>
+</form>
+</div>
+</div>
+
 <div id="editUserModal" class="modal pcms-modal pcms-modal--md" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editUserTitle">
 <div class="modal-content pcms-modal-dialog">
 <form id="editUserForm" class="pcms-modal-form" method="POST" action="update_user.php">

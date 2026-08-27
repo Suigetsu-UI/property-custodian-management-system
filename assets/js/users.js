@@ -4,8 +4,10 @@
     var modal = window.PCMSModal;
     var addModal = document.getElementById('addUserModal');
     var editModal = document.getElementById('editUserModal');
+    var resetMfaModal = document.getElementById('resetMfaModal');
     var addForm = document.getElementById('addUserForm');
     var editForm = document.getElementById('editUserForm');
+    var resetMfaForm = document.getElementById('resetMfaForm');
     var addButton = document.getElementById('openAddUserModal');
     var searchInput = document.getElementById('userSearchInput');
     var roleFilter = document.getElementById('userRoleFilter');
@@ -58,6 +60,31 @@
             document.getElementById('editUserStatus').value = user.is_active ? '1' : '0';
             document.getElementById('editUserSelfNotice').hidden = !user.is_self;
             modal.open(editModal, button);
+        });
+    });
+
+    document.querySelectorAll('[data-user-action="reset-mfa"]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var user = modal.readRowData(button);
+
+            if (
+                !user ||
+                user.is_self ||
+                !user.mfa_has_state ||
+                !resetMfaModal ||
+                !resetMfaForm
+            ) return;
+
+            resetMfaForm.reset();
+            document.getElementById('resetMfaTargetID').value = user.id || '';
+            document.getElementById('resetMfaTargetSessionVersion').value =
+                user.session_version || '';
+            document.getElementById('resetMfaTargetName').textContent =
+                (user.full_name || 'User') + ' (' +
+                (user.employee_id || 'Unknown ID') + ')';
+            document.getElementById('resetMfaTargetStatus').textContent =
+                user.mfa_status || 'Pending';
+            modal.open(resetMfaModal, button);
         });
     });
 

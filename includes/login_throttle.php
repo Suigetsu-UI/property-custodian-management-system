@@ -80,7 +80,7 @@ function recordLoginFailure(
     PDO $pdo,
     string $employeeId,
     string $ipAddress
-): void {
+): bool {
     $stmt = $pdo->prepare(
         "INSERT INTO login_attempts (
             attempt_key,
@@ -117,12 +117,33 @@ function recordLoginFailure(
                     THEN CURRENT_TIMESTAMP + INTERVAL '15 minutes'
                 ELSE NULL
             END,
-            updated_at = CURRENT_TIMESTAMP"
+            updated_at = CURRENT_TIMESTAMP
+         RETURNING locked_until > CURRENT_TIMESTAMP AS became_blocked"
     );
+
+    $becameBlocked = false;
 
     foreach (loginThrottleKeys($employeeId, $ipAddress) as $key) {
         $stmt->execute(['attempt_key' => $key]);
+        $becameBlocked = loginThrottleDatabaseBoolean(
+            $stmt->fetchColumn()
+        ) || $becameBlocked;
     }
+
+    return $becameBlocked;
+}
+
+function loginThrottleDatabaseBoolean(mixed $value): bool
+{
+    if (is_bool($value)) {
+        return $value;
+    }
+
+    return in_array(
+        strtolower(trim((string) $value)),
+        ['1', 't', 'true', 'yes', 'on'],
+        true
+    );
 }
 
 function clearLoginAccountFailures(PDO $pdo, string $employeeId): void

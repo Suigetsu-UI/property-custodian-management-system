@@ -28,8 +28,16 @@ require_once __DIR__ . '/access_control.php';
 <header class="top-header">
 
     <div class="top-header-left">
-        <button type="button" class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
-            <i class="fas fa-bars"></i>
+        <button
+            type="button"
+            class="menu-toggle"
+            id="menuToggle"
+            aria-label="Hide navigation"
+            aria-controls="sidebar"
+            aria-expanded="true"
+            title="Hide navigation"
+        >
+            <i class="fas fa-bars" aria-hidden="true"></i>
         </button>
         <div class="system-title">
             Property Custodian Management System
