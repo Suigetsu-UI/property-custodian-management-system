@@ -103,6 +103,9 @@ if ($type === 'Procurement Report') {
     $d = generateProcurementSummary();
 
     echo "PROCUREMENT SUMMARY\n";
+    if (empty($d['available'])) {
+        echo "Procurement service is temporarily unavailable.\n\n";
+    }
     echo "Total Requests: {$d['total']}\n";
     echo "Pending: {$d['pending']}\n";
     echo "Approved: {$d['approved']}\n";
@@ -168,6 +171,9 @@ if ($type === 'Procurement Report') {
     $d = generateFullSystemSummary();
 
     echo "FULL SYSTEM SUMMARY\n\n";
+    if (empty($d['procurement']['available'])) {
+        echo "Procurement service is temporarily unavailable; current Procurement totals are omitted.\n";
+    }
 
     echo "Procurement - Total: {$d['procurement']['total']}, Pending: {$d['procurement']['pending']}, Approved: {$d['procurement']['approved']}, Delivered: {$d['procurement']['delivered']}, Rejected: {$d['procurement']['rejected']}\n";
 

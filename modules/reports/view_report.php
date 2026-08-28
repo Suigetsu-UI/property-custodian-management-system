@@ -155,6 +155,13 @@ include "../../includes/header.php";
 
 <?php $data = generateProcurementSummary(); ?>
 
+<?php if (empty($data['available'])): ?>
+<div class="error-message" role="alert">
+Procurement service is temporarily unavailable. Historical event reporting remains available.
+</div>
+<br>
+<?php endif; ?>
+
 <h3>Procurement Summary</h3>
 
 <table class="asset-table">
@@ -245,6 +252,13 @@ include "../../includes/header.php";
 <br>
 
 <h3>Recently Delivered (from Procurement)</h3>
+
+<?php if (empty($data['procurement_available'])): ?>
+<div class="error-message" role="alert">
+Procurement delivery data is temporarily unavailable.
+</div>
+<br>
+<?php endif; ?>
 
 <table class="asset-table">
 
@@ -468,6 +482,13 @@ include "../../includes/header.php";
 <?php elseif ($type === 'Full System Report'): ?>
 
 <?php $data = generateFullSystemSummary(); ?>
+
+<?php if (empty($data['procurement']['available'])): ?>
+<div class="error-message" role="alert">
+Procurement service is temporarily unavailable; its current totals are omitted below.
+</div>
+<br>
+<?php endif; ?>
 
 <h3>Full System Summary</h3>
 

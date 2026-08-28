@@ -128,23 +128,14 @@
         });
     }
 
-    var searchInput = document.getElementById('searchInput');
+    var filterForm = document.getElementById('procurementFilterForm');
     var statusFilter = document.getElementById('statusFilter');
     var supplierFilter = document.getElementById('supplierFilter');
 
-    function applyFilters() {
-        var search = (searchInput ? searchInput.value : '').toLowerCase();
-        var status = (statusFilter ? statusFilter.value : '').toLowerCase();
-        var supplier = (supplierFilter ? supplierFilter.value : '').toLowerCase();
-        document.querySelectorAll('#procurementTable tbody tr.procurement-row').forEach(function (row) {
-            var matchesSearch = row.cells[0].textContent.toLowerCase().includes(search) || row.cells[1].textContent.toLowerCase().includes(search);
-            var matchesStatus = !status || row.cells[5].textContent.toLowerCase().trim() === status;
-            var matchesSupplier = !supplier || row.cells[4].textContent.toLowerCase().trim() === supplier;
-            row.style.display = matchesSearch && matchesStatus && matchesSupplier ? '' : 'none';
-        });
+    function submitFilters() {
+        if (filterForm) filterForm.submit();
     }
 
-    if (searchInput) searchInput.addEventListener('input', applyFilters);
-    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
-    if (supplierFilter) supplierFilter.addEventListener('change', applyFilters);
+    if (statusFilter) statusFilter.addEventListener('change', submitFilters);
+    if (supplierFilter) supplierFilter.addEventListener('change', submitFilters);
 })();

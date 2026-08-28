@@ -90,9 +90,19 @@ $operationalCards = [
 <article class="dashboard-operational-card">
     <i class="fas <?= htmlspecialchars($icon) ?>" aria-hidden="true"></i>
     <div>
-        <strong><?= (int) $dashboard['operational'][$key] ?></strong>
+        <strong><?=
+            $key === 'open_procurement' &&
+            empty($dashboard['operational']['procurement_available'])
+                ? '—'
+                : (int) $dashboard['operational'][$key]
+        ?></strong>
         <span><?= htmlspecialchars($label) ?></span>
-        <small><?= htmlspecialchars($detail) ?></small>
+        <small><?= htmlspecialchars(
+            $key === 'open_procurement' &&
+            empty($dashboard['operational']['procurement_available'])
+                ? 'Service temporarily unavailable'
+                : $detail
+        ) ?></small>
     </div>
 </article>
 <?php endforeach; ?>

@@ -11,10 +11,6 @@
 function nextBusinessId(PDO $pdo, string $entity, string $prefix): string
 {
     $allowedSequences = [
-        'procurement' => [
-            'sequence' => 'procurement_id_seq',
-            'prefix' => 'PRC',
-        ],
         'inventory' => [
             'sequence' => 'inventory_id_seq',
             'prefix' => 'INV',

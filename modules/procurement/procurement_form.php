@@ -28,7 +28,7 @@ require_once __DIR__ . "/../../auth/check_auth.php";
             type="text"
             id="procurementID"
             name="procurement_id"
-            value="<?= htmlspecialchars($procurement['procurement_id'] ?? '') ?>"
+            value="<?= htmlspecialchars($procurement['procurement_id'] ?? ($newProcurementId ?? '')) ?>"
             readonly>
 
     </div>

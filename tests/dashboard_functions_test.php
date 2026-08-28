@@ -79,19 +79,23 @@ assertDashboard(
 
 $operational = $pdo->query(
     "SELECT
-        (SELECT COUNT(*) FROM procurement
-         WHERE status IN ('Pending', 'Approved')) AS procurement,
         (SELECT COUNT(*) FROM maintenance
          WHERE status IN ('Scheduled', 'In Progress')) AS maintenance,
         (SELECT COUNT(*) FROM audits
          WHERE status IN ('Scheduled', 'Ongoing')) AS audits,
         (SELECT COALESCE(SUM(quantity), 0) FROM inventory) AS inventory"
 )->fetch();
+$procurementSummary = getProcurementSummarySafely();
 
 assertDashboard(
     $dashboard['operational']['open_procurement'] ===
-        (int) $operational['procurement'],
-    'Open Procurement must include Pending and Approved only.'
+        (int) ($procurementSummary['open'] ?? 0),
+    'Open Procurement must come from the Procurement service summary.'
+);
+assertDashboard(
+    $dashboard['operational']['procurement_available'] ===
+        (bool) ($procurementSummary['available'] ?? false),
+    'Dashboard must expose Procurement service availability.'
 );
 assertDashboard(
     $dashboard['operational']['active_maintenance'] ===

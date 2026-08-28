@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . "/database.php";
+require_once __DIR__ . "/procurement_gateway.php";
 
 function getAllowedReportTypes(): array
 {
@@ -25,73 +26,7 @@ function isAllowedReportType(string $reportType): bool
 
 function generateProcurementSummary(): array
 {
-    $pdo = getDbConnection();
-
-    $stmt = $pdo->query(
-        "SELECT
-            COUNT(*) AS total,
-            COUNT(*) FILTER (
-                WHERE status = 'Pending'
-            ) AS pending,
-            COUNT(*) FILTER (
-                WHERE status = 'Approved'
-            ) AS approved,
-            COUNT(*) FILTER (
-                WHERE status = 'Delivered'
-            ) AS delivered,
-            COUNT(*) FILTER (
-                WHERE status = 'Rejected'
-            ) AS rejected
-         FROM procurement"
-    );
-
-    $counts = $stmt->fetch();
-
-    $summary = [
-        'total' => (int) ($counts['total'] ?? 0),
-        'pending' => (int) ($counts['pending'] ?? 0),
-        'approved' => (int) ($counts['approved'] ?? 0),
-        'delivered' => (int) ($counts['delivered'] ?? 0),
-        'rejected' => (int) ($counts['rejected'] ?? 0),
-        'by_supplier' => [],
-        'recent' => []
-    ];
-
-    $supplierStmt = $pdo->query(
-        "SELECT
-            CASE
-                WHEN supplier IS NULL
-                     OR trim(supplier) = ''
-                THEN 'Unknown'
-                ELSE supplier
-            END AS supplier_name,
-            COUNT(*) AS record_count
-         FROM procurement
-         GROUP BY supplier_name
-         ORDER BY supplier_name ASC"
-    );
-
-    foreach ($supplierStmt->fetchAll() as $row) {
-        $summary['by_supplier'][$row['supplier_name']] =
-            (int) $row['record_count'];
-    }
-
-    $recentStmt = $pdo->query(
-        "SELECT
-            procurement_id,
-            item_name,
-            quantity,
-            supplier,
-            status
-         FROM procurement
-         ORDER BY id DESC
-         LIMIT 5"
-    );
-
-    $summary['recent'] =
-        $recentStmt->fetchAll();
-
-    return $summary;
+    return getProcurementSummarySafely();
 }
 
 function generateInventorySummary(): array
@@ -135,21 +70,11 @@ function generateInventorySummary(): array
         'recently_delivered' => []
     ];
 
-    $recentStmt = $pdo->query(
-        "SELECT
-            procurement_id,
-            item_name,
-            category,
-            quantity,
-            status
-         FROM procurement
-         WHERE status = 'Delivered'
-         ORDER BY id DESC
-         LIMIT 5"
-    );
-
+    $procurement = getProcurementSummarySafely();
+    $summary['procurement_available'] =
+        (bool) ($procurement['available'] ?? false);
     $summary['recently_delivered'] =
-        $recentStmt->fetchAll();
+        $procurement['recently_delivered'] ?? [];
 
     return $summary;
 }

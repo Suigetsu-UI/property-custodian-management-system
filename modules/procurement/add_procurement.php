@@ -1,25 +1,29 @@
 <?php
 
-require_once "../../auth/check_auth.php";
+require_once __DIR__ . '/../../auth/check_auth.php';
+require_once __DIR__ . '/../../includes/procurement_gateway.php';
 
-include "../../includes/header.php";
+try {
+    $newProcurementId = getProcurementServiceClient()->nextBusinessId(
+        currentProcurementActor()
+    );
+    $_SESSION['pending_procurement_ids'] ??= [];
+    $_SESSION['pending_procurement_ids'][$newProcurementId] = true;
+} catch (Throwable $error) {
+    header('Location: index.php?error=service_unavailable');
+    exit;
+}
 
+include __DIR__ . '/../../includes/header.php';
 ?>
 
 <div class="layout">
-
-    <?php include "../../includes/sidebar.php"; ?>
-
-    <div class="main-content">
-
-        <h1>Add Procurement</h1>
-
-        <hr>
-
-        <?php include "procurement_form.php"; ?>
-
-    </div>
-
+<?php include __DIR__ . '/../../includes/sidebar.php'; ?>
+<div class="main-content">
+<h1>Add Procurement</h1>
+<hr>
+<?php include __DIR__ . '/procurement_form.php'; ?>
+</div>
 </div>
 
-<?php include "../../includes/footer.php"; ?>
+<?php include __DIR__ . '/../../includes/footer.php'; ?>

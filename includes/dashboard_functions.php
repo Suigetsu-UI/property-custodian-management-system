@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/ai_insight_functions.php';
+require_once __DIR__ . '/procurement_gateway.php';
 
 const DASHBOARD_TIMEZONE = 'Asia/Manila';
 const DASHBOARD_ATTENTION_LIMIT = 8;
@@ -76,11 +77,6 @@ function getOperationalIndicators(PDO $pdo): array
         "SELECT
             (
                 SELECT COUNT(*)
-                FROM procurement
-                WHERE status IN ('Pending', 'Approved')
-            ) AS open_procurement,
-            (
-                SELECT COUNT(*)
                 FROM maintenance
                 WHERE status IN ('Scheduled', 'In Progress')
             ) AS active_maintenance,
@@ -95,10 +91,13 @@ function getOperationalIndicators(PDO $pdo): array
             ) AS inventory_units"
     );
     $counts = $statement->fetch();
+    $procurement = getProcurementSummarySafely();
 
     return [
         'open_procurement' =>
-            (int) ($counts['open_procurement'] ?? 0),
+            (int) ($procurement['open'] ?? 0),
+        'procurement_available' =>
+            (bool) ($procurement['available'] ?? false),
         'active_maintenance' =>
             (int) ($counts['active_maintenance'] ?? 0),
         'pending_audits' =>

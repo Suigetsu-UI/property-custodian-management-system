@@ -2804,3 +2804,21 @@ body.pcms-modal-open {
         grid-column: 1;
     }
 }
+.pcms-results-summary {
+    margin: 0 0 12px;
+    color: var(--text-muted, #64748b);
+    font-size: 0.92rem;
+}
+
+.pcms-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.pcms-pagination span {
+    color: var(--text-muted, #64748b);
+    font-weight: 700;
+}

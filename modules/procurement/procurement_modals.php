@@ -56,7 +56,7 @@ $procurementStatuses = ['Pending', 'Approved', 'Rejected', 'Delivered'];
 <input type="hidden" id="editProcurementRowID" name="id">
 <header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Procurement</span><h2 id="editProcurementTitle">Edit Procurement</h2><p>Changes continue through the existing status transition and Inventory transaction rules.</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Edit Procurement"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body"><div class="pcms-form-grid">
-    <div class="form-row"><label for="editProcurementID">Procurement ID</label><input type="text" id="editProcurementID" readonly></div>
+    <div class="form-row"><label for="editProcurementID">Procurement ID</label><input type="text" id="editProcurementID" name="procurement_id" readonly></div>
     <div class="form-row"><label for="editProcurementItem">Item Name</label><input type="text" id="editProcurementItem" name="item_name" required></div>
     <div class="form-row"><label for="editProcurementCategory">Category</label><select id="editProcurementCategory" name="category"><?php foreach ($procurementCategories as $value): ?><option value="<?= htmlspecialchars($value) ?>"><?= htmlspecialchars($value) ?></option><?php endforeach; ?></select></div>
     <div class="form-row"><label for="editProcurementQuantity">Quantity</label><input type="number" id="editProcurementQuantity" name="quantity" min="1" required></div>

@@ -1,50 +1,37 @@
 <?php
 
-require_once "../../auth/check_auth.php";
-require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . '/../../auth/check_auth.php';
+require_once __DIR__ . '/../../includes/procurement_gateway.php';
 
-$id = isset($_GET['id']) ? (int) $_GET['id'] : null;
-
-$pdo = getDbConnection();
+$id = trim((string) ($_GET['id'] ?? ''));
 $procurement = null;
 
-if ($id !== null) {
-    $stmt = $pdo->prepare(
-        "SELECT *
-         FROM procurement
-         WHERE id = :id"
-    );
-
-    $stmt->execute([
-        'id' => $id,
-    ]);
-
-    $procurement = $stmt->fetch() ?: null;
+if (preg_match('/^PRC-\d{6}$/', $id) === 1) {
+    try {
+        $procurement = getProcurementServiceClient()->find($id);
+    } catch (ProcurementServiceUnavailableException $error) {
+        header('Location: index.php?error=service_unavailable');
+        exit;
+    } catch (ProcurementServiceException $error) {
+        $procurement = null;
+    }
 }
 
 if (!$procurement) {
-    header("Location: index.php");
+    header('Location: index.php');
     exit;
 }
 
-include "../../includes/header.php";
-
+include __DIR__ . '/../../includes/header.php';
 ?>
 
 <div class="layout">
-
-<?php include "../../includes/sidebar.php"; ?>
-
+<?php include __DIR__ . '/../../includes/sidebar.php'; ?>
 <div class="main-content">
-
 <h1>Edit Procurement</h1>
-
 <hr>
-
-<?php include "procurement_form.php"; ?>
-
+<?php include __DIR__ . '/procurement_form.php'; ?>
+</div>
 </div>
 
-</div>
-
-<?php include "../../includes/footer.php"; ?>
+<?php include __DIR__ . '/../../includes/footer.php'; ?>
