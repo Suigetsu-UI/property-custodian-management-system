@@ -1,0 +1,10 @@
+.git
+.gitignore
+.env
+services/procurement/.env
+services/property_core/.env
+services/property_core/.env.test
+deliverables
+qa_*
+*.log
+*.tmp

@@ -5,7 +5,13 @@ const PCMS_SESSION_ABSOLUTE_LIFETIME = 28800;
 
 function isPcmsHttpsRequest(): bool
 {
+    $forceHttps = filter_var(
+        getenv('PCMS_FORCE_HTTPS') ?: false,
+        FILTER_VALIDATE_BOOLEAN
+    );
+
     return (
+        $forceHttps ||
         (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
         (string) ($_SERVER['SERVER_PORT'] ?? '') === '443'
     );
