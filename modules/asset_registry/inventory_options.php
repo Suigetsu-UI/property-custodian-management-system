@@ -9,34 +9,27 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
     header('Allow: GET');
-    echo json_encode(['suggestions' => []]);
+    echo json_encode(['options' => []]);
     exit;
 }
 
-$field = trim((string) ($_GET['field'] ?? ''));
-$query = substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
-if (!in_array($field, ['brand', 'model', 'supplier'], true)) {
-    http_response_code(400);
-    echo json_encode(['suggestions' => []]);
-    exit;
-}
+$query = substr(trim((string) ($_GET['q'] ?? '')), 0, 200);
 if (strlen($query) < 2) {
-    echo json_encode(['suggestions' => []]);
+    echo json_encode(['options' => [], 'minimum_search_length' => 2]);
     exit;
 }
 
 try {
-    $result = getPropertyCoreServiceClient()->assetSuggestions([
-        'field' => $field,
+    $result = getPropertyCoreServiceClient()->inventoryOptions([
         'search' => $query,
         'limit' => 10,
     ]);
     echo json_encode(
-        ['suggestions' => array_values($result['suggestions'] ?? [])],
+        ['options' => array_values($result['options'] ?? [])],
         JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
     );
 } catch (Throwable $error) {
     http_response_code(503);
-    echo json_encode(['suggestions' => []]);
+    echo json_encode(['options' => []]);
 }
 exit;

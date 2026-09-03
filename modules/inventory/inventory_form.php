@@ -1,6 +1,6 @@
 <?php
 
-$isEdit = isset($id) && $id !== null;
+$isEdit = isset($inventory) && is_array($inventory);
 
 ?>
 
@@ -9,11 +9,7 @@ $isEdit = isset($id) && $id !== null;
 <form method="POST" action="save_inventory.php">
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
-<input
-    type="hidden"
-    name="id"
-    value="<?= htmlspecialchars((string) ($id ?? '')) ?>"
->
+<input type="hidden" name="mode" value="<?= $isEdit ? 'edit' : 'create' ?>">
 
 <h2><?= $isEdit ? 'Edit Inventory' : 'Add Inventory' ?></h2>
 

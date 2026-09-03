@@ -1,157 +1,74 @@
 <?php
 
-require_once "../../auth/check_auth.php";
-require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . '/../../auth/check_auth.php';
+require_once __DIR__ . '/../../includes/property_core_gateway.php';
 
-$id = filter_var(
-    $_GET['id'] ?? null,
-    FILTER_VALIDATE_INT,
-    [
-        'options' => [
-            'min_range' => 1
-        ]
-    ]
-);
+$assetId = propertyCoreBusinessId($_GET['asset_id'] ?? null, 'AST');
+$jsonMode = ($_GET['format'] ?? '') === 'json';
 
-if ($id === false) {
-    header("Location: index.php");
+if ($assetId === null) {
+    if ($jsonMode) {
+        header('Content-Type: application/json; charset=UTF-8');
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid Asset ID.']);
+        exit;
+    }
+    header('Location: index.php?error=not_found');
     exit;
 }
 
-$pdo = getDbConnection();
-
-$stmt = $pdo->prepare(
-    "SELECT *
-     FROM assets
-     WHERE id = :id"
-);
-
-$stmt->execute([
-    'id' => $id
-]);
-
-$asset = $stmt->fetch();
-
-if (!$asset) {
-    header("Location: index.php");
+try {
+    $asset = getPropertyCoreServiceClient()->findAsset($assetId);
+} catch (Throwable $error) {
+    if ($jsonMode) {
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Cache-Control: no-store');
+        http_response_code($error instanceof PropertyCoreServiceException ? 404 : 503);
+        echo json_encode(['error' => 'The Asset record could not be loaded.']);
+        exit;
+    }
+    header('Location: index.php?error=' . rawurlencode(assetGatewayErrorKey($error)));
     exit;
 }
 
-include "../../includes/header.php";
-include "../../includes/sidebar.php";
+if ($jsonMode) {
+    header('Content-Type: application/json; charset=UTF-8');
+    header('Cache-Control: no-store');
+    echo json_encode(
+        ['success' => true, 'asset' => $asset],
+        JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
+    );
+    exit;
+}
 
+include __DIR__ . '/../../includes/header.php';
 ?>
-
-<div class="main-content">
-
-<h1>View Asset</h1>
-
-<hr><br>
-
-<table class="asset-table">
-
-<tr>
-<th>Asset ID</th>
-<td><?= htmlspecialchars($asset['asset_id']) ?></td>
-</tr>
-
-<tr>
-<th>Asset Name</th>
-<td><?= htmlspecialchars($asset['asset_name']) ?></td>
-</tr>
-
-<tr>
-<th>Category</th>
-<td><?= htmlspecialchars($asset['category']) ?></td>
-</tr>
-
-<tr>
-<th>Status</th>
-<td><?= htmlspecialchars($asset['status'] ?? 'Available') ?></td>
-</tr>
-
-<tr>
-<th>Brand</th>
-<td><?= htmlspecialchars($asset['brand'] ?? '') ?></td>
-</tr>
-
-<tr>
-<th>Model</th>
-<td><?= htmlspecialchars($asset['model'] ?? '') ?></td>
-</tr>
-
-<tr>
-<th>Serial Number</th>
-<td><?= htmlspecialchars($asset['serial_number'] ?? '') ?></td>
-</tr>
-
-<tr>
-<th>Supplier</th>
-<td><?= htmlspecialchars($asset['supplier'] ?? '') ?></td>
-</tr>
-
-<tr>
-<th>Location</th>
-<td><?= htmlspecialchars($asset['location'] ?? '') ?></td>
-</tr>
-
-<tr>
-<th>Remarks</th>
-<td><?= htmlspecialchars($asset['remarks'] ?? '') ?></td>
-</tr>
-
-<tr>
-<th>Employee ID</th>
-
-<td>
-<?= !empty($asset['employee_id'])
-    ? htmlspecialchars($asset['employee_id'])
-    : 'Not Assigned' ?>
-</td>
-
-</tr>
-
-<tr>
-<th>Custodian</th>
-
-<td>
-<?= !empty($asset['custodian'])
-    ? htmlspecialchars($asset['custodian'])
-    : 'Not Assigned' ?>
-</td>
-
-</tr>
-
-<tr>
-<th>Department</th>
-
-<td>
-<?= !empty($asset['department'])
-    ? htmlspecialchars($asset['department'])
-    : 'Not Assigned' ?>
-</td>
-
-</tr>
-
-<tr>
-<th>Date Assigned</th>
-
-<td>
-<?= !empty($asset['date_assigned'])
-    ? htmlspecialchars($asset['date_assigned'])
-    : 'Not Assigned' ?>
-</td>
-
-</tr>
-
-</table>
-
-<br>
-
-<a href="index.php" class="btn">
-    ← Back to Asset Registry
-</a>
-
+<div class="layout">
+    <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
+    <div class="main-content">
+        <h1>View Asset</h1><hr><br>
+        <table class="asset-table">
+            <?php
+            $labels = [
+                'asset_id' => 'Asset ID', 'asset_name' => 'Asset Name',
+                'category' => 'Category', 'status' => 'Status',
+                'brand' => 'Brand', 'model' => 'Model',
+                'serial_number' => 'Serial Number',
+                'acquisition_date' => 'Acquisition Date',
+                'purchase_cost' => 'Purchase Cost', 'supplier' => 'Supplier',
+                'location' => 'Location', 'remarks' => 'Remarks',
+                'employee_id' => 'Employee ID', 'custodian' => 'Custodian',
+                'department' => 'Department', 'date_assigned' => 'Date Assigned',
+            ];
+            foreach ($labels as $field => $label):
+                $value = $asset[$field] ?? '';
+            ?>
+            <tr><th><?= htmlspecialchars($label) ?></th><td><?= htmlspecialchars(
+                $value === null || $value === '' ? 'Not Assigned' : (string) $value
+            ) ?></td></tr>
+            <?php endforeach; ?>
+        </table>
+        <br><a href="index.php" class="btn btn-outline">← Back to Asset Registry</a>
+    </div>
 </div>
-
-<?php include "../../includes/footer.php"; ?>
+<?php include __DIR__ . '/../../includes/footer.php'; ?>

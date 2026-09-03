@@ -4,7 +4,7 @@
 <div class="modal-content pcms-modal-dialog">
 <form id="addInventoryForm" class="pcms-modal-form" method="POST" action="save_inventory.php">
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-<input type="hidden" name="id" value="">
+<input type="hidden" name="mode" value="create">
 <header class="pcms-modal-header">
     <div><span class="pcms-modal-eyebrow">Inventory</span><h2 id="addInventoryTitle">Add Inventory</h2><p>Create a stock record that can later be registered as an Asset.</p></div>
     <button type="button" class="close-modal" data-modal-close aria-label="Close Add Inventory"><span aria-hidden="true">&times;</span></button>
@@ -42,7 +42,8 @@
 <div class="modal-content pcms-modal-dialog">
 <form id="editInventoryForm" class="pcms-modal-form" method="POST" action="save_inventory.php">
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-<input type="hidden" id="editInventoryRowID" name="id">
+<input type="hidden" name="mode" value="edit">
+<input type="hidden" id="editInventoryBusinessID" name="inventory_id">
 <header class="pcms-modal-header">
     <div><span class="pcms-modal-eyebrow">Inventory</span><h2 id="editInventoryTitle">Edit Inventory</h2><p>Update stock details while keeping the Inventory ID unchanged.</p></div>
     <button type="button" class="close-modal" data-modal-close aria-label="Close Edit Inventory"><span aria-hidden="true">&times;</span></button>

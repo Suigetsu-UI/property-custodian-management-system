@@ -1,191 +1,113 @@
 <?php
 
-require_once "../../auth/check_auth.php";
+require_once __DIR__ . '/../../auth/check_auth.php';
+require_once __DIR__ . '/../../includes/property_core_gateway.php';
 
-include "../../includes/header.php";
+$inventoryFilters = [
+    'search' => substr(trim((string) ($_GET['search'] ?? '')), 0, 200),
+    'category' => trim((string) ($_GET['category'] ?? '')),
+    'condition' => trim((string) ($_GET['condition'] ?? '')),
+    'page' => max(1, (int) ($_GET['page'] ?? 1)),
+    'per_page' => 25,
+];
+$inventoryPage = [
+    'records' => [],
+    'pagination' => [
+        'page' => 1,
+        'per_page' => 25,
+        'total' => 0,
+        'total_pages' => 1,
+    ],
+    'filters' => $inventoryFilters,
+];
+$inventoryServiceAvailable = true;
 
-/*
- * Explicit Add-mode variables.
- *
- * inventory_table.php uses $inventoryRows, so these do not
- * collide with the DB-backed list include.
- */
-$id = null;
-$inventory = null;
+try {
+    $inventoryPage = getPropertyCoreServiceClient()->listInventory(
+        $inventoryFilters
+    );
+} catch (Throwable $error) {
+    $inventoryServiceAvailable = false;
+}
 
+include __DIR__ . '/../../includes/header.php';
+
+$errorMessages = [
+    'linked' => 'Cannot delete this Inventory item because one or more registered Assets are linked to it.',
+    'duplicate_item' => 'An Inventory item with this Asset Name and Category already exists. Please edit the existing item instead.',
+    'invalid_id' => 'The Inventory ID is invalid or was not issued for this session. Please reopen Add Inventory and try again.',
+    'not_found' => 'The requested Inventory record was not found.',
+    'save_failed' => 'The Inventory record could not be saved. Please check the entered values and try again.',
+    'service_unavailable' => 'Property Core service is temporarily unavailable. Other PCMS modules remain available.',
+];
+$errorKey = trim((string) ($_GET['error'] ?? ''));
 ?>
 
 <div class="layout">
+    <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
 
-<?php include "../../includes/sidebar.php"; ?>
+    <div class="main-content">
+        <h1>Inventory Management</h1>
+        <hr>
+        <br>
 
-<div class="main-content">
+        <?php if (!$inventoryServiceAvailable): ?>
+        <div class="error-message" role="alert">
+            Property Core service is temporarily unavailable. Other PCMS modules remain available.
+        </div>
+        <br>
+        <?php elseif (isset($errorMessages[$errorKey])): ?>
+        <div class="error-message" role="alert">
+            <?= htmlspecialchars($errorMessages[$errorKey]) ?>
+        </div>
+        <br>
+        <?php endif; ?>
 
-<h1>Inventory Management</h1>
+        <form method="GET" action="index.php" class="search-toolbar" id="inventorySearchForm">
+            <input
+                type="search"
+                id="searchInput"
+                name="search"
+                placeholder="Search Inventory..."
+                value="<?= htmlspecialchars($inventoryFilters['search']) ?>"
+            >
 
-<hr>
+            <select id="categoryFilter" name="category">
+                <option value="">All Categories</option>
+                <?php foreach (['Computer', 'Furniture', 'Office Equipment', 'Electronics'] as $category): ?>
+                <option value="<?= htmlspecialchars($category) ?>" <?= $inventoryFilters['category'] === $category ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($category) ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
 
-<br>
+            <select id="conditionFilter" name="condition">
+                <option value="">All Conditions</option>
+                <?php foreach (['Good', 'Fair', 'Needs Repair', 'Unserviceable'] as $condition): ?>
+                <option value="<?= htmlspecialchars($condition) ?>" <?= $inventoryFilters['condition'] === $condition ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($condition) ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
 
-<?php if (($_GET['error'] ?? '') === 'linked'): ?>
+            <button type="submit" class="btn btn-outline">Search</button>
+            <a href="index.php" class="btn btn-outline">Clear Filters</a>
+            <button
+                type="button"
+                id="openInventoryModal"
+                class="btn btn-primary"
+                <?= !$inventoryServiceAvailable ? 'disabled' : '' ?>
+            >
+                Add Inventory
+            </button>
+        </form>
 
-<div class="error-message">
+        <br>
 
-Cannot delete this Inventory item because one or more registered assets are linked to it. Remove the linked asset records first before deleting this inventory item.
-
+        <?php include __DIR__ . '/inventory_table.php'; ?>
+        <?php include __DIR__ . '/inventory_modals.php'; ?>
+    </div>
 </div>
 
-<br>
-
-<?php endif; ?>
-
-<?php if (($_GET['error'] ?? '') === 'duplicate_item'): ?>
-
-<div class="error-message">
-
-An Inventory item with this Asset Name and Category already exists. Please edit the existing item instead of creating a duplicate.
-
-</div>
-
-<br>
-
-<?php endif; ?>
-
-<?php if (($_GET['error'] ?? '') === 'invalid_id'): ?>
-
-<div class="error-message">
-
-The Inventory ID is invalid or was not issued for this session. Please reopen Add Inventory and try again.
-
-</div>
-
-<br>
-
-<?php endif; ?>
-
-<?php if (($_GET['error'] ?? '') === 'save_failed'): ?>
-
-<div class="error-message">
-
-The Inventory record could not be saved. Please check the entered values and try again.
-
-</div>
-
-<br>
-
-<?php endif; ?>
-
-<div class="search-toolbar">
-
-<form
-    method="GET"
-    action="search_inventory.php"
-    id="inventorySearchForm"
-    style="display:flex; gap:15px; flex-wrap:wrap; align-items:center;"
->
-
-<input
-    type="text"
-    id="searchInput"
-    name="search"
-    placeholder="Search Inventory..."
-    value="<?= htmlspecialchars($_GET['search'] ?? '') ?>"
->
-
-<select id="categoryFilter" name="category">
-
-<option value="">All Categories</option>
-
-<option
-    value="Computer"
-    <?= (($_GET['category'] ?? '') === 'Computer') ? 'selected' : '' ?>
->
-    Computer
-</option>
-
-<option
-    value="Furniture"
-    <?= (($_GET['category'] ?? '') === 'Furniture') ? 'selected' : '' ?>
->
-    Furniture
-</option>
-
-<option
-    value="Office Equipment"
-    <?= (($_GET['category'] ?? '') === 'Office Equipment') ? 'selected' : '' ?>
->
-    Office Equipment
-</option>
-
-<option
-    value="Electronics"
-    <?= (($_GET['category'] ?? '') === 'Electronics') ? 'selected' : '' ?>
->
-    Electronics
-</option>
-
-</select>
-
-<select id="conditionFilter" name="condition">
-
-<option value="">All Conditions</option>
-
-<option
-    value="Good"
-    <?= (($_GET['condition'] ?? '') === 'Good') ? 'selected' : '' ?>
->
-    Good
-</option>
-
-<option
-    value="Fair"
-    <?= (($_GET['condition'] ?? '') === 'Fair') ? 'selected' : '' ?>
->
-    Fair
-</option>
-
-<option
-    value="Needs Repair"
-    <?= (($_GET['condition'] ?? '') === 'Needs Repair') ? 'selected' : '' ?>
->
-    Needs Repair
-</option>
-
-<option
-    value="Unserviceable"
-    <?= (($_GET['condition'] ?? '') === 'Unserviceable') ? 'selected' : '' ?>
->
-    Unserviceable
-</option>
-
-</select>
-
-<button type="submit" class="btn btn-primary">
-    Search
-</button>
-
-</form>
-
-<button
-    type="button"
-    id="openInventoryModal"
-    class="btn btn-primary"
->
-    Add Inventory
-</button>
-
-</div>
-
-<br>
-
-<?php include "inventory_table.php"; ?>
-
-<?php include "inventory_modals.php"; ?>
-
-</div>
-
-</div>
-
-<script src="<?= BASE_URL ?>assets/js/inventory.js"></script>
-
-<?php include "../../includes/footer.php"; ?>
+<script src="<?= BASE_URL ?>assets/js/inventory.js?v=<?= filemtime(__DIR__ . '/../../assets/js/inventory.js') ?>"></script>
+<?php include __DIR__ . '/../../includes/footer.php'; ?>

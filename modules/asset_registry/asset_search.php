@@ -1,63 +1,48 @@
-<div class="search-toolbar">
+<form method="GET" action="index.php" class="search-toolbar" id="assetFilterForm">
+    <input
+        type="search"
+        id="searchInput"
+        name="search"
+        value="<?= htmlspecialchars($assetFilters['search']) ?>"
+        placeholder="Search Assets or Custodians..."
+        aria-label="Search Assets"
+    >
 
-<input
-    type="text"
-    id="searchInput"
-    placeholder="Search assets or custodians..."
-    aria-label="Search assets"
->
+    <select id="categoryFilter" name="category" aria-label="Filter by category">
+        <option value="">All Categories</option>
+        <?php foreach (($assetFilterOptions['categories'] ?? []) as $category): ?>
+        <option value="<?= htmlspecialchars($category) ?>" <?= $assetFilters['category'] === $category ? 'selected' : '' ?>>
+            <?= htmlspecialchars($category) ?>
+        </option>
+        <?php endforeach; ?>
+    </select>
 
-<select id="categoryFilter" aria-label="Filter by category">
+    <select id="statusFilter" name="status" aria-label="Filter by status">
+        <option value="">All Status</option>
+        <?php foreach (($assetFilterOptions['statuses'] ?? []) as $status): ?>
+        <option value="<?= htmlspecialchars($status) ?>" <?= $assetFilters['status'] === $status ? 'selected' : '' ?>>
+            <?= htmlspecialchars($status) ?>
+        </option>
+        <?php endforeach; ?>
+    </select>
 
-<option value="">All Categories</option>
+    <select id="locationFilter" name="location" aria-label="Filter by location">
+        <option value="">All Locations</option>
+        <?php foreach (($assetFilterOptions['locations'] ?? []) as $location): ?>
+        <option value="<?= htmlspecialchars($location) ?>" <?= $assetFilters['location'] === $location ? 'selected' : '' ?>>
+            <?= htmlspecialchars($location) ?>
+        </option>
+        <?php endforeach; ?>
+    </select>
 
-<option>Computer</option>
-<option>Furniture</option>
-<option>Laboratory Equipment</option>
-<option>Office Equipment</option>
-<option>Electronics</option>
-
-</select>
-
-<select id="statusFilter" aria-label="Filter by status">
-
-<option value="">All Status</option>
-
-<option>Available</option>
-<option>Assigned</option>
-<option>Under Maintenance</option>
-<option>Lost</option>
-
-</select>
-
-<select id="locationFilter" aria-label="Filter by location">
-
-<option value="">All Locations</option>
-
-</select>
-
-<button
-    type="button"
-    id="openAssetModal"
->
-    Register Asset
-</button>
-
-</div>
-
-<div class="asset-filter-summary">
-
-<span id="assetResultCount" aria-live="polite">
-    Showing 0 Assets
-</span>
-
-<button
-    type="button"
-    id="clearAssetFilters"
-    class="btn btn-outline"
-    disabled
->
-    Clear Filters
-</button>
-
-</div>
+    <button type="submit" class="btn btn-outline">Search</button>
+    <a href="index.php" class="btn btn-outline">Clear Filters</a>
+    <button
+        type="button"
+        id="openAssetModal"
+        class="btn btn-primary"
+        <?= !$assetServiceAvailable ? 'disabled' : '' ?>
+    >
+        Register Asset
+    </button>
+</form>

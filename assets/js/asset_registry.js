@@ -1,215 +1,56 @@
 (function () {
     'use strict';
 
-    var assetModal = document.getElementById('assetModal');
-    var viewAssetModal = document.getElementById('viewAssetModal');
-    var editAssetModal = document.getElementById('editAssetModal');
-    var assignCustodianModal = document.getElementById('assignCustodianModal');
-    var openAssetModal = document.getElementById('openAssetModal');
-    var editAssetFromView = document.getElementById('editAssetFromView');
+    var modal = window.PCMSModal;
+    var registerModal = document.getElementById('assetModal');
+    var registerForm = document.getElementById('registerAssetForm');
+    var openRegister = document.getElementById('openAssetModal');
+    var viewModal = document.getElementById('viewAssetModal');
+    var editModal = document.getElementById('editAssetModal');
+    var assignModal = document.getElementById('assignCustodianModal');
+    var editFromView = document.getElementById('editAssetFromView');
+    var filterForm = document.getElementById('assetFilterForm');
     var searchInput = document.getElementById('searchInput');
-    var categoryFilter = document.getElementById('categoryFilter');
-    var statusFilter = document.getElementById('statusFilter');
-    var locationFilter = document.getElementById('locationFilter');
-    var assetResultCount = document.getElementById('assetResultCount');
-    var clearAssetFilters = document.getElementById('clearAssetFilters');
-    var assetFilterEmptyState = document.getElementById('assetFilterEmptyState');
-    var inventoryItemSelect = document.getElementById('inventoryItemSelect');
-    var assetNameField = document.getElementById('assetNameField');
-    var assetCategoryField = document.getElementById('assetCategoryField');
-    var acquisitionDate = document.getElementById('acquisitionDate');
-    var editAssetForm = document.getElementById('editAssetForm');
-    var assignCustodianForm = document.getElementById('assignCustodianForm');
-    var activeModal = null;
-    var returnFocusTo = null;
     var currentAsset = null;
+    var filterTimer = null;
 
-    var focusableSelector = [
-        'a[href]',
-        'button:not([disabled])',
-        'input:not([disabled]):not([type="hidden"])',
-        'select:not([disabled])',
-        'textarea:not([disabled])',
-        '[tabindex]:not([tabindex="-1"])'
-    ].join(',');
-
-    function focusableElements(modal) {
-        return Array.prototype.slice.call(
-            modal.querySelectorAll(focusableSelector)
-        ).filter(function (element) {
-            return element.offsetParent !== null;
-        });
-    }
-
-    function closeModal(modal, restoreFocus) {
-        if (!modal) return;
-
-        modal.classList.remove('is-open');
-        modal.setAttribute('aria-hidden', 'true');
-
-        if (activeModal === modal) {
-            activeModal = null;
-        }
-
-        if (!document.querySelector('.pcms-modal.is-open')) {
-            document.body.classList.remove('pcms-modal-open');
-        }
-
-        if (
-            restoreFocus !== false &&
-            returnFocusTo &&
-            document.documentElement.contains(returnFocusTo)
-        ) {
-            returnFocusTo.focus();
-            returnFocusTo = null;
-        }
-    }
-
-    function openModal(modal, opener) {
-        if (!modal) return;
-
-        if (!activeModal && opener) {
-            returnFocusTo = opener;
-        }
-
-        if (activeModal && activeModal !== modal) {
-            closeModal(activeModal, false);
-        }
-
-        modal.classList.add('is-open');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('pcms-modal-open');
-        activeModal = modal;
-
-        window.requestAnimationFrame(function () {
-            var preferred = modal.querySelector('[data-modal-autofocus]');
-            var focusable = focusableElements(modal);
-            var target = preferred || focusable[0];
-
-            if (target) target.focus();
-        });
-    }
-
-    function readAssetRow(row) {
-        if (!row || !row.dataset.asset) return null;
-
-        try {
-            return JSON.parse(row.dataset.asset);
-        } catch (error) {
-            return null;
-        }
-    }
-
-    function readAsset(trigger) {
-        var row = trigger.closest('tr[data-asset]');
-
-        return readAssetRow(row);
-    }
-
-    function displayValue(value, emptyText) {
-        if (value === null || value === undefined || String(value).trim() === '') {
-            return emptyText || '—';
-        }
-
-        return String(value);
-    }
-
-    function displayDate(value, emptyText) {
-        if (!value) return emptyText || '—';
-
-        var parts = String(value).split('-');
-
-        if (parts.length !== 3) return String(value);
-
-        var date = new Date(
-            Number(parts[0]),
-            Number(parts[1]) - 1,
-            Number(parts[2])
-        );
-
-        if (Number.isNaN(date.getTime())) return String(value);
-
-        return date.toLocaleDateString('en-PH', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-    }
-
-    function displayCost(value) {
+    function money(value) {
         if (value === null || value === undefined || value === '') return '—';
-
         var amount = Number(value);
-
         if (!Number.isFinite(amount)) return String(value);
-
         return new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP'
+            style: 'currency', currency: 'PHP'
         }).format(amount);
     }
 
-    function populateViewModal(asset) {
-        var custodyFields = ['employee_id', 'custodian', 'department', 'date_assigned'];
-
-        viewAssetModal.querySelectorAll('[data-view-field]').forEach(function (field) {
+    function populateView(asset) {
+        viewModal.querySelectorAll('[data-view-field]').forEach(function (field) {
             var name = field.dataset.viewField;
             var value = asset[name];
 
             if (name === 'purchase_cost') {
-                field.textContent = displayCost(value);
-            } else if (name === 'acquisition_date') {
-                field.textContent = displayDate(value);
-            } else if (name === 'date_assigned') {
-                field.textContent = displayDate(value, 'Not Assigned');
+                field.textContent = money(value);
+            } else if (name === 'acquisition_date' || name === 'date_assigned') {
+                field.textContent = modal.date(value, 'Not Assigned');
+            } else if (['employee_id', 'custodian', 'department'].includes(name)) {
+                field.textContent = modal.value(value, 'Not Assigned');
             } else {
-                field.textContent = displayValue(
-                    value,
-                    custodyFields.indexOf(name) !== -1 ? 'Not Assigned' : '—'
-                );
+                field.textContent = modal.value(value);
             }
         });
-
-        var subtitle = document.getElementById('viewAssetSubtitle');
-        var badge = document.getElementById('viewAssetStatus');
-
-        subtitle.textContent = [asset.asset_id, asset.asset_name]
-            .filter(Boolean)
-            .join(' — ');
-
-        badge.textContent = displayValue(asset.status, 'Available');
-        badge.dataset.status = String(asset.status || 'Available')
-            .toLowerCase()
-            .replace(/\s+/g, '-');
+        document.getElementById('viewAssetSubtitle').textContent = [
+            asset.asset_id, asset.asset_name
+        ].filter(Boolean).join(' — ');
+        modal.setStatus(document.getElementById('viewAssetStatus'), asset.status);
     }
 
-    function setSelectValue(select, value) {
-        var dynamicOption = select.querySelector('option[data-dynamic-option]');
-
-        if (dynamicOption) dynamicOption.remove();
-
-        var hasValue = Array.prototype.some.call(select.options, function (option) {
-            return option.value === value;
-        });
-
-        if (!hasValue && value) {
-            var option = document.createElement('option');
-            option.value = value;
-            option.textContent = value;
-            option.dataset.dynamicOption = 'true';
-            select.appendChild(option);
-        }
-
-        select.value = value || '';
-    }
-
-    function populateEditModal(asset) {
-        document.getElementById('editAssetRowID').value = asset.id || '';
+    function populateEdit(asset) {
+        document.getElementById('editAssetBusinessID').value = asset.asset_id || '';
         document.getElementById('editAssetID').value = asset.asset_id || '';
         document.getElementById('editAssetName').value = asset.asset_name || '';
-        setSelectValue(
+        modal.setSelectValue(
             document.getElementById('editAssetCategory'),
-            asset.category || ''
+            asset.category
         );
         document.getElementById('editAssetBrand').value = asset.brand || '';
         document.getElementById('editAssetModel').value = asset.model || '';
@@ -219,275 +60,235 @@
         document.getElementById('editAssetRemarks').value = asset.remarks || '';
     }
 
-    function populateAssignModal(asset) {
-        assignCustodianForm.reset();
-        document.getElementById('assignAssetRowID').value = asset.id || '';
+    function populateAssignment(asset) {
+        document.getElementById('assignAssetBusinessID').value = asset.asset_id || '';
         document.getElementById('assignAssetLabel').textContent = [
-            asset.asset_id,
-            asset.asset_name
+            asset.asset_id, asset.asset_name
         ].filter(Boolean).join(' — ');
+        document.getElementById('assignEmployeeID').value = '';
+        document.getElementById('assignCustodianName').value = '';
+        document.getElementById('assignDate').value = '';
     }
 
-    document.querySelectorAll('[data-modal-close]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            closeModal(button.closest('.pcms-modal'));
-        });
-    });
+    async function loadAsset(assetId) {
+        var response = await fetch(
+            'view_asset.php?' + new URLSearchParams({
+                asset_id: assetId,
+                format: 'json'
+            }).toString(),
+            { cache: 'no-store', headers: { 'Accept': 'application/json' } }
+        );
+        var data = await response.json();
 
-    document.querySelectorAll('.pcms-modal').forEach(function (modal) {
-        modal.addEventListener('mousedown', function (event) {
-            if (event.target === modal) closeModal(modal);
-        });
-    });
-
-    document.addEventListener('keydown', function (event) {
-        if (!activeModal) return;
-
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            closeModal(activeModal);
-            return;
+        if (!response.ok || !data || !data.asset) {
+            throw new Error('Asset details are unavailable.');
         }
+        return data.asset;
+    }
 
-        if (event.key !== 'Tab') return;
+    document.addEventListener('click', async function (event) {
+        var trigger = event.target.closest('[data-asset-action]');
+        if (!trigger) return;
 
-        var focusable = focusableElements(activeModal);
+        var row = trigger.closest('tr[data-asset-id]');
+        var assetId = row ? row.dataset.assetId : '';
+        if (!assetId) return;
 
-        if (focusable.length === 0) {
-            event.preventDefault();
-            return;
-        }
+        event.preventDefault();
+        trigger.setAttribute('aria-busy', 'true');
 
-        var first = focusable[0];
-        var last = focusable[focusable.length - 1];
-
-        if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus();
-        }
-    });
-
-    document.querySelectorAll('[data-asset-action]').forEach(function (trigger) {
-        trigger.addEventListener('click', function (event) {
-            var asset = readAsset(trigger);
-
-            if (!asset) return;
-
-            var action = trigger.dataset.assetAction;
-            var modal = null;
-
-            if (action === 'view' && viewAssetModal) {
-                populateViewModal(asset);
-                modal = viewAssetModal;
-            } else if (action === 'edit' && editAssetModal && editAssetForm) {
-                populateEditModal(asset);
-                modal = editAssetModal;
-            } else if (
-                action === 'assign' &&
-                assignCustodianModal &&
-                assignCustodianForm
-            ) {
-                populateAssignModal(asset);
-                modal = assignCustodianModal;
-            }
-
-            if (!modal) return;
-
-            event.preventDefault();
+        try {
+            var asset = await loadAsset(assetId);
             currentAsset = asset;
-            openModal(modal, trigger);
-        });
+
+            if (trigger.dataset.assetAction === 'view') {
+                populateView(asset);
+                modal.open(viewModal, trigger);
+            } else if (trigger.dataset.assetAction === 'edit') {
+                populateEdit(asset);
+                modal.open(editModal, trigger);
+            } else if (trigger.dataset.assetAction === 'assign') {
+                if (asset.status !== 'Available') {
+                    throw new Error('Asset state changed.');
+                }
+                populateAssignment(asset);
+                modal.open(assignModal, trigger);
+            }
+        } catch (error) {
+            alert('Asset details are temporarily unavailable. Please refresh and try again.');
+        } finally {
+            trigger.removeAttribute('aria-busy');
+        }
     });
 
-    if (editAssetFromView) {
-        editAssetFromView.addEventListener('click', function () {
-            if (!currentAsset || !editAssetModal || !editAssetForm) return;
-
-            populateEditModal(currentAsset);
-            openModal(editAssetModal, editAssetFromView);
+    if (editFromView) {
+        editFromView.addEventListener('click', function () {
+            if (!currentAsset) return;
+            populateEdit(currentAsset);
+            modal.open(editModal, editFromView);
         });
     }
 
-    if (openAssetModal) {
-        openAssetModal.addEventListener('click', async function () {
-            var idField = document.getElementById('assetID');
+    var inventorySearch = document.getElementById('inventoryItemSearch');
+    var inventoryId = document.getElementById('inventoryItemID');
+    var inventorySuggestions = document.getElementById('inventoryItemSuggestions');
+    var assetName = document.getElementById('assetNameField');
+    var assetCategory = document.getElementById('assetCategoryField');
+    var inventoryTimer = null;
+    var inventoryRequest = null;
 
-            if (!idField) {
-                alert('Could not prepare the Asset registration form.');
+    function clearInventorySelection(clearSearch) {
+        if (inventoryId) inventoryId.value = '';
+        if (assetName) assetName.value = '';
+        if (assetCategory) assetCategory.value = '';
+        if (clearSearch && inventorySearch) inventorySearch.value = '';
+    }
+
+    function closeInventorySuggestions() {
+        if (!inventorySuggestions || !inventorySearch) return;
+        inventorySuggestions.hidden = true;
+        inventorySearch.setAttribute('aria-expanded', 'false');
+    }
+
+    function renderInventoryOptions(options) {
+        inventorySuggestions.replaceChildren();
+
+        if (!Array.isArray(options) || options.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'pcms-typeahead-empty';
+            empty.textContent = 'No available Inventory items found.';
+            inventorySuggestions.appendChild(empty);
+        } else {
+            options.forEach(function (option) {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'pcms-typeahead-option';
+                button.setAttribute('role', 'option');
+                button.textContent = [
+                    option.inventory_id,
+                    option.asset_name,
+                    option.category,
+                    'Qty ' + String(option.quantity ?? 0)
+                ].filter(Boolean).join(' — ');
+                button.addEventListener('click', function () {
+                    inventoryId.value = option.inventory_id || '';
+                    inventorySearch.value = [
+                        option.inventory_id, option.asset_name
+                    ].filter(Boolean).join(' — ');
+                    assetName.value = option.asset_name || '';
+                    assetCategory.value = option.category || '';
+                    closeInventorySuggestions();
+                });
+                inventorySuggestions.appendChild(button);
+            });
+        }
+
+        inventorySuggestions.hidden = false;
+        inventorySearch.setAttribute('aria-expanded', 'true');
+    }
+
+    async function searchInventory(query) {
+        if (inventoryRequest) inventoryRequest.abort();
+        inventoryRequest = new AbortController();
+
+        try {
+            var response = await fetch(
+                'inventory_options.php?' + new URLSearchParams({ q: query }),
+                {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' },
+                    signal: inventoryRequest.signal
+                }
+            );
+            var data = await response.json();
+            if (!response.ok || !data) throw new Error('Options unavailable.');
+            renderInventoryOptions(data.options || []);
+        } catch (error) {
+            if (error.name !== 'AbortError') renderInventoryOptions([]);
+        }
+    }
+
+    if (inventorySearch) {
+        inventorySearch.addEventListener('input', function () {
+            clearInventorySelection(false);
+            window.clearTimeout(inventoryTimer);
+            var query = inventorySearch.value.trim();
+            if (query.length < 2) {
+                closeInventorySuggestions();
                 return;
             }
+            inventoryTimer = window.setTimeout(function () {
+                searchInventory(query);
+            }, 250);
+        });
+        inventorySearch.addEventListener('blur', function () {
+            window.setTimeout(closeInventorySuggestions, 150);
+        });
+    }
 
+    if (registerForm) {
+        registerForm.addEventListener('submit', function (event) {
+            if (!inventoryId || !inventoryId.value) {
+                event.preventDefault();
+                alert('Select an available Inventory item from the search results.');
+                if (inventorySearch) inventorySearch.focus();
+            }
+        });
+    }
+
+    if (openRegister) {
+        openRegister.addEventListener('click', async function () {
+            var idField = document.getElementById('assetID');
+            if (!idField || !registerForm) return;
+
+            registerForm.reset();
+            clearInventorySelection(true);
+            closeInventorySuggestions();
             idField.value = '';
-            openAssetModal.disabled = true;
+            openRegister.disabled = true;
 
             try {
                 var response = await fetch('next_asset_id.php', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-Token': document.querySelector(
+                            'meta[name="csrf-token"]'
+                        ).content
                     },
                     cache: 'no-store'
                 });
-
-                if (!response.ok) {
-                    throw new Error('Could not generate Asset ID.');
-                }
-
                 var data = await response.json();
-
-                if (!data || typeof data.asset_id !== 'string' || data.asset_id === '') {
+                if (!response.ok || !data || !data.asset_id) {
                     throw new Error('Invalid Asset ID response.');
                 }
-
                 idField.value = data.asset_id;
-                openModal(assetModal, openAssetModal);
+                modal.open(registerModal, openRegister);
             } catch (error) {
                 alert('Could not generate an Asset ID. Please try again.');
             } finally {
-                openAssetModal.disabled = false;
+                openRegister.disabled = false;
             }
         });
     }
 
     var today = new Date().toISOString().split('T')[0];
-
+    var acquisitionDate = document.getElementById('acquisitionDate');
+    var assignmentDate = document.getElementById('assignDate');
     if (acquisitionDate) acquisitionDate.max = today;
+    if (assignmentDate) assignmentDate.max = today;
 
-    if (inventoryItemSelect && assetNameField && assetCategoryField) {
-        inventoryItemSelect.addEventListener('change', function () {
-            var selectedOption = inventoryItemSelect.options[
-                inventoryItemSelect.selectedIndex
-            ];
+    function submitFilters() {
+        if (filterForm) filterForm.requestSubmit();
+    }
 
-            assetNameField.value = selectedOption
-                ? selectedOption.getAttribute('data-name') || ''
-                : '';
-
-            assetCategoryField.value = selectedOption
-                ? selectedOption.getAttribute('data-category') || ''
-                : '';
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            window.clearTimeout(filterTimer);
+            filterTimer = window.setTimeout(submitFilters, 400);
         });
     }
-
-    function normalizedValue(value) {
-        return value === null || value === undefined
-            ? ''
-            : String(value).trim().toLowerCase();
-    }
-
-    function populateLocationFilter() {
-        if (!locationFilter) return;
-
-        var rows = document.querySelectorAll('#assetTable tbody tr.asset-row');
-        var locations = new Map();
-
-        rows.forEach(function (row) {
-            var asset = readAssetRow(row);
-            var location = asset && asset.location
-                ? String(asset.location).trim()
-                : '';
-
-            if (location && !locations.has(location.toLowerCase())) {
-                locations.set(location.toLowerCase(), location);
-            }
-        });
-
-        Array.from(locations.values())
-            .sort(function (first, second) {
-                return first.localeCompare(second, 'en-PH', {
-                    sensitivity: 'base'
-                });
-            })
-            .forEach(function (location) {
-                var option = document.createElement('option');
-
-                option.value = location;
-                option.textContent = location;
-                locationFilter.appendChild(option);
-            });
-    }
-
-    function applyAssetFilters() {
-        var search = normalizedValue(searchInput ? searchInput.value : '');
-        var category = normalizedValue(categoryFilter ? categoryFilter.value : '');
-        var status = normalizedValue(statusFilter ? statusFilter.value : '');
-        var location = normalizedValue(locationFilter ? locationFilter.value : '');
-        var rows = document.querySelectorAll('#assetTable tbody tr.asset-row');
-        var searchableFields = [
-            'asset_id',
-            'asset_name',
-            'brand',
-            'model',
-            'serial_number',
-            'custodian',
-            'employee_id',
-            'department',
-            'supplier'
-        ];
-        var visibleCount = 0;
-
-        rows.forEach(function (row) {
-            var asset = readAssetRow(row) || {};
-            var searchableText = searchableFields.map(function (field) {
-                return normalizedValue(asset[field]);
-            }).join(' ');
-            var assetCategory = normalizedValue(asset.category);
-            var assetStatus = normalizedValue(asset.status || 'Available');
-            var assetLocation = normalizedValue(asset.location);
-            var matchesSearch = search === '' || searchableText.includes(search);
-            var matchesCategory = category === '' || assetCategory === category;
-            var matchesStatus = status === '' || assetStatus === status;
-            var matchesLocation = location === '' || assetLocation === location;
-            var visible = matchesSearch &&
-                matchesCategory &&
-                matchesStatus &&
-                matchesLocation;
-
-            row.style.display = visible ? '' : 'none';
-
-            if (visible) visibleCount++;
-        });
-
-        if (assetResultCount) {
-            assetResultCount.textContent = 'Showing ' +
-                visibleCount +
-                ' ' +
-                (visibleCount === 1 ? 'Asset' : 'Assets');
-        }
-
-        if (assetFilterEmptyState) {
-            assetFilterEmptyState.hidden = visibleCount !== 0;
-        }
-
-        if (clearAssetFilters) {
-            clearAssetFilters.disabled = !(
-                search || category || status || location
-            );
-        }
-    }
-
-    populateLocationFilter();
-
-    if (searchInput) searchInput.addEventListener('input', applyAssetFilters);
-    if (categoryFilter) categoryFilter.addEventListener('change', applyAssetFilters);
-    if (statusFilter) statusFilter.addEventListener('change', applyAssetFilters);
-    if (locationFilter) locationFilter.addEventListener('change', applyAssetFilters);
-
-    if (clearAssetFilters) {
-        clearAssetFilters.addEventListener('click', function () {
-            if (searchInput) searchInput.value = '';
-            if (categoryFilter) categoryFilter.value = '';
-            if (statusFilter) statusFilter.value = '';
-            if (locationFilter) locationFilter.value = '';
-
-            applyAssetFilters();
-
-            if (searchInput) searchInput.focus();
-        });
-    }
-
-    applyAssetFilters();
+    ['categoryFilter', 'statusFilter', 'locationFilter'].forEach(function (id) {
+        var field = document.getElementById(id);
+        if (field) field.addEventListener('change', submitFilters);
+    });
 })();

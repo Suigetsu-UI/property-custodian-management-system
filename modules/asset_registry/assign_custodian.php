@@ -1,179 +1,52 @@
 <?php
 
-require_once "../../auth/check_auth.php";
-require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . '/../../auth/check_auth.php';
+require_once __DIR__ . '/../../includes/property_core_gateway.php';
 
-$id = filter_var(
-    $_GET['id'] ?? null,
-    FILTER_VALIDATE_INT,
-    [
-        'options' => [
-            'min_range' => 1
-        ]
-    ]
-);
-
-if ($id === false) {
-    header("Location: index.php");
+$assetId = propertyCoreBusinessId($_GET['asset_id'] ?? null, 'AST');
+if ($assetId === null) {
+    header('Location: index.php?error=not_found');
     exit;
 }
 
-$pdo = getDbConnection();
-
-$stmt = $pdo->prepare(
-    "SELECT *
-     FROM assets
-     WHERE id = :id"
-);
-
-$stmt->execute([
-    'id' => $id
-]);
-
-$asset = $stmt->fetch();
-
-if (!$asset) {
-    header("Location: index.php");
+try {
+    $asset = getPropertyCoreServiceClient()->findAsset($assetId);
+} catch (Throwable $error) {
+    header('Location: index.php?error=' . rawurlencode(assetGatewayErrorKey($error)));
     exit;
 }
 
-$maintenanceStmt = $pdo->prepare(
-    "SELECT 1
-     FROM maintenance
-     WHERE asset_id = :asset_id
-       AND status <> 'Completed'
-     LIMIT 1"
-);
-
-$maintenanceStmt->execute([
-    'asset_id' => $id
-]);
-
-if (
-    $asset['status'] === 'Under Maintenance' ||
-    $maintenanceStmt->fetch()
-) {
-    header("Location: index.php?error=maintenance");
+$status = (string) ($asset['status'] ?? '');
+if ($status === 'Under Maintenance') {
+    header('Location: index.php?error=maintenance');
+    exit;
+}
+if ($status === 'Lost') {
+    header('Location: index.php?error=lost');
+    exit;
+}
+if ($status !== 'Available') {
+    header('Location: index.php?error=state_changed');
     exit;
 }
 
-if ($asset['status'] === 'Lost') {
-    header("Location: index.php?error=lost");
-    exit;
-}
-
-/*
- * Assignment is Available -> Assigned.
- */
-if ($asset['status'] !== 'Available') {
-    header("Location: index.php");
-    exit;
-}
-
-include "../../includes/header.php";
-include "../../includes/sidebar.php";
-
+include __DIR__ . '/../../includes/header.php';
 ?>
-
-<div class="main-content">
-
-<h1>Assign Custodian</h1>
-
-<hr><br>
-
-<form
-    method="POST"
-    action="save_assignment.php"
->
-
-<input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-<input type="hidden" name="id" value="<?= (int) $id ?>">
-
-<label>Asset ID</label>
-
-<input
-    type="text"
-    value="<?= htmlspecialchars($asset['asset_id']) ?>"
-    readonly
->
-
-<br><br>
-
-<label>Asset Name</label>
-
-<input
-    type="text"
-    value="<?= htmlspecialchars($asset['asset_name']) ?>"
-    readonly
->
-
-<br><br>
-
-<label>Employee ID</label>
-
-<input
-    type="text"
-    name="employee_id"
-    placeholder="Enter Employee ID"
-    required
->
-
-<br><br>
-
-<label>Custodian Name</label>
-
-<input
-    type="text"
-    name="custodian"
-    placeholder="Enter Custodian Name"
-    required
->
-
-<br><br>
-
-<label>Department</label>
-
-<select
-    name="department"
-    required
->
-
-<option>ICT Office</option>
-<option>Registrar</option>
-<option>Accounting</option>
-<option>Library</option>
-<option>Guidance Office</option>
-
-</select>
-
-<br><br>
-
-<label>Date Assigned</label>
-
-<input
-    type="date"
-    name="date_assigned"
-    required
->
-
-<br><br>
-
-<button
-    class="btn btn-success"
-    type="submit"
->
-    Assign Asset
-</button>
-
-<a
-    href="index.php"
-    class="btn"
->
-    Cancel
-</a>
-
-</form>
-
+<div class="layout">
+    <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
+    <div class="main-content">
+        <h1>Assign Custodian</h1><hr><br>
+        <form method="POST" action="save_assignment.php" class="asset-form">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="asset_id" value="<?= htmlspecialchars($assetId) ?>">
+            <div class="form-row"><label>Asset ID</label><input type="text" value="<?= htmlspecialchars($assetId) ?>" readonly></div>
+            <div class="form-row"><label>Asset Name</label><input type="text" value="<?= htmlspecialchars($asset['asset_name'] ?? '') ?>" readonly></div>
+            <div class="form-row"><label>Employee ID</label><input type="text" name="employee_id" required></div>
+            <div class="form-row"><label>Custodian Name</label><input type="text" name="custodian" required></div>
+            <div class="form-row"><label>Department</label><select name="department" required><option>ICT Office</option><option>Registrar</option><option>Accounting</option><option>Library</option><option>Guidance Office</option></select></div>
+            <div class="form-row"><label>Date Assigned</label><input type="date" name="date_assigned" required></div>
+            <br><button class="btn btn-success" type="submit">Assign Asset</button> <a href="index.php" class="btn btn-outline">Cancel</a>
+        </form>
+    </div>
 </div>
-
-<?php include "../../includes/footer.php"; ?>
+<?php include __DIR__ . '/../../includes/footer.php'; ?>

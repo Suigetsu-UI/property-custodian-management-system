@@ -114,7 +114,7 @@
 >
 
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-<input type="hidden" id="editAssetRowID" name="id">
+<input type="hidden" id="editAssetBusinessID" name="asset_id">
 
 <header class="pcms-modal-header">
 
@@ -240,7 +240,7 @@
 >
 
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getAccessCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-<input type="hidden" id="assignAssetRowID" name="id">
+<input type="hidden" id="assignAssetBusinessID" name="asset_id">
 
 <header class="pcms-modal-header">
 

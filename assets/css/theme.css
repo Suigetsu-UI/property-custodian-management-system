@@ -1374,13 +1374,21 @@ body.pcms-modal-open {
 }
 
 .pcms-table-scroll {
+    width: 100%;
     max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
     border-radius: var(--radius-sm);
 }
 
 .pcms-table-scroll .asset-table {
     min-width: 940px;
+}
+
+.pcms-table-scroll:focus-visible {
+    outline: 3px solid rgba(126, 34, 206, 0.28);
+    outline-offset: 3px;
 }
 
 .pcms-report-loading {

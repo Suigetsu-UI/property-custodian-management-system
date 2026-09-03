@@ -1,66 +1,40 @@
 <?php
 
-require_once "../../auth/check_auth.php";
-require_once __DIR__ . "/../../includes/database.php";
+require_once __DIR__ . '/../../auth/check_auth.php';
+require_once __DIR__ . '/../../includes/property_core_gateway.php';
 
-$idRaw = $_GET['id'] ?? null;
-
-$id = filter_var(
-    $idRaw,
-    FILTER_VALIDATE_INT,
-    [
-        'options' => [
-            'min_range' => 1
-        ]
-    ]
+$inventoryId = propertyCoreBusinessId(
+    $_GET['inventory_id'] ?? $_GET['id'] ?? null,
+    'INV'
 );
 
-if ($id === false) {
-    header("Location: index.php");
+if ($inventoryId === null) {
+    header('Location: index.php?error=invalid_id');
     exit;
 }
 
-$pdo = getDbConnection();
-
-$stmt = $pdo->prepare(
-    "SELECT *
-     FROM inventory
-     WHERE id = :id"
-);
-
-$stmt->execute([
-    'id' => $id
-]);
-
-$inventory = $stmt->fetch();
-
-if (!$inventory) {
-    header("Location: index.php");
+try {
+    $inventory = getPropertyCoreServiceClient()->findInventory($inventoryId);
+} catch (Throwable $error) {
+    header(
+        'Location: index.php?error=' . rawurlencode(
+            inventoryGatewayErrorKey($error)
+        )
+    );
     exit;
 }
 
-/*
- * Header is intentionally included only after the
- * not-found redirect decision.
- */
-include "../../includes/header.php";
-
+$id = $inventoryId;
+include __DIR__ . '/../../includes/header.php';
 ?>
 
 <div class="layout">
-
-    <?php include "../../includes/sidebar.php"; ?>
-
+    <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
     <div class="main-content">
-
         <h1>Edit Inventory</h1>
-
         <hr>
-
-        <?php include "inventory_form.php"; ?>
-
+        <?php include __DIR__ . '/inventory_form.php'; ?>
     </div>
-
 </div>
 
-<?php include "../../includes/footer.php"; ?>
+<?php include __DIR__ . '/../../includes/footer.php'; ?>
