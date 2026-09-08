@@ -8,6 +8,7 @@ $assetFilters = [
     'category' => trim((string) ($_GET['category'] ?? '')),
     'status' => trim((string) ($_GET['status'] ?? '')),
     'location' => trim((string) ($_GET['location'] ?? '')),
+    'lifecycle' => trim((string) ($_GET['lifecycle'] ?? '')),
     'page' => max(1, (int) ($_GET['page'] ?? 1)),
     'per_page' => 25,
 ];
@@ -25,6 +26,10 @@ $assetFilterOptions = [
     'categories' => [],
     'locations' => [],
     'statuses' => ['Available', 'Assigned', 'Under Maintenance', 'Lost'],
+    'lifecycles' => [
+        'Active', 'Aging', 'Retirement Review',
+        'Useful Life Not Configured', 'Age Not Recorded',
+    ],
 ];
 $assetServiceAvailable = true;
 

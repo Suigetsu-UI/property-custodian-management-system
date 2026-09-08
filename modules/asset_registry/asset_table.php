@@ -40,6 +40,8 @@ $pageUrl = static function (int $page) use ($assetFilters): string {
     <th>Asset ID</th>
     <th>Asset Name</th>
     <th>Category</th>
+    <th>Age</th>
+    <th>Lifecycle</th>
     <th>Custodian</th>
     <th>Status</th>
     <th>Actions</th>
@@ -53,6 +55,12 @@ $pageUrl = static function (int $page) use ($assetFilters): string {
     <td><?= htmlspecialchars($asset['asset_id']) ?></td>
     <td><?= htmlspecialchars($asset['asset_name']) ?></td>
     <td class="asset-category"><?= htmlspecialchars($asset['category']) ?></td>
+    <td><?= htmlspecialchars((string) ($asset['asset_age'] ?? 'Not recorded')) ?></td>
+    <td>
+        <span class="pcms-lifecycle-badge" data-lifecycle="<?= htmlspecialchars((string) ($asset['lifecycle'] ?? '')) ?>">
+            <?= htmlspecialchars((string) ($asset['lifecycle'] ?? 'Not configured')) ?>
+        </span>
+    </td>
     <td><?= !empty($asset['custodian'])
         ? htmlspecialchars($asset['custodian'])
         : 'Not Assigned' ?></td>
@@ -90,7 +98,7 @@ $pageUrl = static function (int $page) use ($assetFilters): string {
 
 <?php if ($assetRows === []): ?>
 <tr>
-    <td colspan="6" style="text-align:center;padding:40px;">
+    <td colspan="8" style="text-align:center;padding:40px;">
         <?= $assetServiceAvailable
             ? 'No Asset records found.'
             : 'Asset records are temporarily unavailable.' ?>

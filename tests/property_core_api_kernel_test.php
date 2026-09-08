@@ -118,6 +118,24 @@ final class FakePropertyCoreStore implements PropertyCoreStore
         return ['suggestions' => ['Dell']];
     }
 
+    public function lifecycleConfiguration(): array
+    {
+        $this->called(__FUNCTION__);
+        return ['aging_threshold_percent' => 80, 'categories' => []];
+    }
+
+    public function updateLifecycleSettings(array $input, string $actor): array
+    {
+        $this->called(__FUNCTION__, [$input, $actor]);
+        return ['aging_threshold_percent' => (int) $input['aging_threshold_percent']];
+    }
+
+    public function saveCategoryUsefulLife(array $input, string $actor): array
+    {
+        $this->called(__FUNCTION__, [$input, $actor]);
+        return ['categories' => [$input + ['updated_by' => $actor]]];
+    }
+
     public function nextAssetBusinessId(): string
     {
         $this->called(__FUNCTION__);
@@ -231,6 +249,15 @@ assertPropertyCoreApi(isset($assetFilters['body']['data']['locations']), 'Asset 
 
 $suggestions = $kernel->dispatch('GET', '/api/v1/assets/suggestions', ['field' => 'brand', 'q' => 'De']);
 assertPropertyCoreApi($suggestions['body']['data']['suggestions'] === ['Dell'], 'Asset autocomplete must use its bounded suggestions route.');
+
+$lifecycleConfiguration = $kernel->dispatch('GET', '/api/v1/lifecycle/configuration');
+assertPropertyCoreApi($lifecycleConfiguration['body']['data']['aging_threshold_percent'] === 80, 'Lifecycle configuration must have a read contract.');
+
+$lifecycleThreshold = $kernel->dispatch('POST', '/api/v1/lifecycle/settings', [], ['aging_threshold_percent' => 75], 'admin');
+assertPropertyCoreApi($lifecycleThreshold['body']['data']['aging_threshold_percent'] === 75, 'Lifecycle threshold updates must preserve the Administrator actor contract.');
+
+$categoryLife = $kernel->dispatch('POST', '/api/v1/lifecycle/categories', [], ['category' => 'Computer', 'useful_life_months' => 60], 'admin2');
+assertPropertyCoreApi($categoryLife['body']['data']['categories'][0]['updated_by'] === 'admin2', 'Category useful-life updates must preserve the Administrator actor contract.');
 
 $nextAsset = $kernel->dispatch('POST', '/api/v1/assets/next-id', [], [], 'admin');
 assertPropertyCoreApi($nextAsset['body']['data']['asset_id'] === 'AST-000003', 'Asset next-ID must use the versioned contract.');

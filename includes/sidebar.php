@@ -22,6 +22,12 @@ $navItems = [
 
 if (isAdministrator()) {
     $navItems[] = [
+        'label' => 'Lifecycle Settings',
+        'href' => BASE_URL . 'modules/lifecycle/index.php',
+        'icon' => 'fa-hourglass-half',
+        'match' => '/lifecycle/',
+    ];
+    $navItems[] = [
         'label' => 'User Management',
         'href' => BASE_URL . 'modules/users/index.php',
         'icon' => 'fa-users-gear',

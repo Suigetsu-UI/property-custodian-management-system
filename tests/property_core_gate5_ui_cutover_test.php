@@ -81,7 +81,9 @@ assertPropertyCoreGate5(
     'Asset list and actions must use paged business-ID navigation.'
 );
 assertPropertyCoreGate5(
-    str_contains($repository, "'asset_id, asset_name, category, custodian, status'") &&
+    str_contains($repository, 'asset_age_months, useful_life_months') &&
+    str_contains($repository, 'aging_threshold_percent') &&
+    str_contains($repository, 'lifecycle') &&
     !str_contains(
         substr(
             $repository,

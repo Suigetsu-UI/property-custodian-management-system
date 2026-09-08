@@ -194,6 +194,37 @@ final class PropertyCoreServiceClient
         );
     }
 
+    public function lifecycleConfiguration(): array
+    {
+        return $this->request('GET', '/api/v1/lifecycle/configuration');
+    }
+
+    public function updateLifecycleSettings(
+        array $settings,
+        string $actor
+    ): array {
+        return $this->request(
+            'POST',
+            '/api/v1/lifecycle/settings',
+            [],
+            $settings,
+            $actor
+        );
+    }
+
+    public function saveCategoryUsefulLife(
+        array $configuration,
+        string $actor
+    ): array {
+        return $this->request(
+            'POST',
+            '/api/v1/lifecycle/categories',
+            [],
+            $configuration,
+            $actor
+        );
+    }
+
     public function nextAssetBusinessId(string $actor): string
     {
         $data = $this->request(

@@ -35,6 +35,15 @@
         <?php endforeach; ?>
     </select>
 
+    <select id="lifecycleFilter" name="lifecycle" aria-label="Filter by lifecycle">
+        <option value="">All Lifecycle Stages</option>
+        <?php foreach (($assetFilterOptions['lifecycles'] ?? []) as $lifecycle): ?>
+        <option value="<?= htmlspecialchars($lifecycle) ?>" <?= $assetFilters['lifecycle'] === $lifecycle ? 'selected' : '' ?>>
+            <?= htmlspecialchars($lifecycle) ?>
+        </option>
+        <?php endforeach; ?>
+    </select>
+
     <button type="submit" class="btn btn-outline">Search</button>
     <a href="index.php" class="btn btn-outline">Clear Filters</a>
     <button

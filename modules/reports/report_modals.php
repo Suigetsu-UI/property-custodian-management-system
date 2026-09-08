@@ -25,7 +25,7 @@
 
 <div id="viewReportModal" class="modal pcms-modal pcms-modal--xl" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="viewReportTitle">
 <div class="modal-content pcms-modal-dialog">
-<header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Reports</span><h2 id="viewReportTitle">Report Preview</h2><p id="viewReportSubtitle">Loading current report data…</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Report Preview"><span aria-hidden="true">&times;</span></button></header>
+<header class="pcms-modal-header"><div><span class="pcms-modal-eyebrow">Reports</span><h2 id="viewReportTitle">Report Preview</h2><p id="viewReportSubtitle">Loading selected-period activity…</p></div><button type="button" class="close-modal" data-modal-close aria-label="Close Report Preview"><span aria-hidden="true">&times;</span></button></header>
 <div class="pcms-modal-body pcms-report-content" id="reportPreviewBody"><div class="pcms-report-loading"><span class="pcms-loading-spinner" aria-hidden="true"></span><strong>Loading report…</strong></div></div>
 <footer class="pcms-modal-footer"><button type="button" class="btn btn-outline" data-modal-close>Close</button><button type="button" class="btn btn-primary" id="reportPreviewPrint">Print</button><a id="reportPreviewDownload" href="download_report.php" class="btn btn-warning">Download</a></footer>
 </div></div>

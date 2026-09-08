@@ -21,6 +21,9 @@ interface PropertyCoreStore
     public function assetOptions(array $filters): array;
     public function assetFilters(): array;
     public function assetSuggestions(array $filters): array;
+    public function lifecycleConfiguration(): array;
+    public function updateLifecycleSettings(array $input, string $actor): array;
+    public function saveCategoryUsefulLife(array $input, string $actor): array;
     public function nextAssetBusinessId(): string;
     public function registerAsset(array $input, string $actor): array;
     public function updateAsset(

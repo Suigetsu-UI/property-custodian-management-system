@@ -289,8 +289,10 @@ final class ProcurementRepository implements ProcurementStore
         try {
             $this->pdo->beginTransaction();
             $statement = $this->pdo->prepare(
-                "SELECT procurement_id, item_name, category, status,
-                        delivered_quantity, delivery_date
+                "SELECT procurement_id, item_name, category, quantity,
+                        supplier, requested_by, request_date, status,
+                        approved_by, approval_date, delivery_date, remarks,
+                        delivered_quantity
                  FROM procurement
                  WHERE procurement_id = :procurement_id
                  FOR UPDATE"
@@ -322,6 +324,17 @@ final class ProcurementRepository implements ProcurementStore
 
             $oldDelivered = (int) $existing['delivered_quantity'];
             $newDelivered = $oldDelivered;
+            $procurementChanged = false;
+
+            foreach (array_keys($record) as $field) {
+                if (
+                    (string) ($existing[$field] ?? '') !==
+                    (string) ($record[$field] ?? '')
+                ) {
+                    $procurementChanged = true;
+                    break;
+                }
+            }
 
             if ($record['status'] === 'Delivered') {
                 $this->transferInventoryStock(
@@ -413,6 +426,17 @@ final class ProcurementRepository implements ProcurementStore
                     $record['status'],
                     $actor
                 );
+            } elseif ($procurementChanged) {
+                $this->recordPropertyEvent([
+                    'module' => 'Procurement',
+                    'event_type' => 'Updated',
+                    'business_id' => $businessId,
+                    'record_name_snap' => $record['item_name'],
+                    'category_snap' => $record['category'],
+                    'event_date' => $this->today(),
+                    'performed_by' => $actor,
+                    'description' => 'Procurement details updated.',
+                ]);
             }
 
             $this->pdo->commit();

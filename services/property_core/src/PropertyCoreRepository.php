@@ -4,6 +4,7 @@ require_once __DIR__ . '/PropertyCoreDomainException.php';
 require_once __DIR__ . '/PropertyCoreStore.php';
 require_once __DIR__ . '/PropertyCoreLifecycleRules.php';
 require_once __DIR__ . '/PropertyCoreTransactionRunner.php';
+require_once __DIR__ . '/AssetLifecycleCalculator.php';
 
 final class PropertyCoreRepository implements PropertyCoreStore
 {
@@ -14,7 +15,9 @@ final class PropertyCoreRepository implements PropertyCoreStore
     private const INVENTORY_COLUMNS =
         'inventory_id, asset_name, category, quantity, condition';
     private const ASSET_LIST_COLUMNS =
-        'asset_id, asset_name, category, custodian, status';
+        'asset_id, asset_name, category, acquisition_date, custodian, status,
+         asset_age_months, useful_life_months, aging_threshold_percent,
+         lifecycle';
 
     public function __construct(
         private readonly PDO $pdo,
@@ -276,19 +279,36 @@ final class PropertyCoreRepository implements PropertyCoreStore
                     );
                     $update->execute($record + ['id' => $existing['id']]);
                     $delta = $record['quantity'] - (int) $existing['quantity'];
+                    $inventoryChanged = false;
 
-                    if ($delta !== 0) {
+                    foreach (
+                        ['asset_name', 'category', 'quantity', 'condition']
+                        as $field
+                    ) {
+                        if (
+                            (string) ($existing[$field] ?? '') !==
+                            (string) ($record[$field] ?? '')
+                        ) {
+                            $inventoryChanged = true;
+                            break;
+                        }
+                    }
+
+                    if ($inventoryChanged) {
                         $this->recordEvent([
                             'module' => 'Inventory',
-                            'event_type' => 'Adjusted',
+                            'event_type' => $delta !== 0
+                                ? 'Adjusted'
+                                : 'Updated',
                             'business_id' => $businessId,
                             'record_name_snap' => $record['asset_name'],
                             'category_snap' => $record['category'],
                             'event_date' => $this->today(),
-                            'quantity_delta' => $delta,
+                            'quantity_delta' => $delta !== 0 ? $delta : null,
                             'performed_by' => $actor,
-                            'description' =>
-                                'Manual Inventory quantity adjustment.',
+                            'description' => $delta !== 0
+                                ? 'Manual Inventory quantity adjustment.'
+                                : 'Inventory details updated.',
                         ]);
                     }
 
@@ -385,9 +405,11 @@ final class PropertyCoreRepository implements PropertyCoreStore
         $category = trim((string) ($filters['category'] ?? ''));
         $status = trim((string) ($filters['status'] ?? ''));
         $location = trim((string) ($filters['location'] ?? ''));
+        $lifecycle = trim((string) ($filters['lifecycle'] ?? ''));
         $this->validateAssetStatus($status);
+        $this->validateAssetLifecycle($lifecycle);
         $where = [];
-        $params = [];
+        $params = ['analysis_date' => $this->today()];
 
         if ($search !== '') {
             $where[] = "lower(
@@ -416,8 +438,13 @@ final class PropertyCoreRepository implements PropertyCoreStore
             }
         }
 
+        if ($lifecycle !== '') {
+            $where[] = 'lifecycle = :lifecycle';
+            $params['lifecycle'] = $lifecycle;
+        }
+
         return $this->pagedList(
-            'assets',
+            $this->assetLifecycleReadModel(),
             self::ASSET_LIST_COLUMNS,
             $where,
             $params,
@@ -428,7 +455,9 @@ final class PropertyCoreRepository implements PropertyCoreStore
                 'category' => $category,
                 'status' => $status,
                 'location' => $location,
-            ]
+                'lifecycle' => $lifecycle,
+            ],
+            [$this, 'normalizeAssetLifecycleRecord']
         );
     }
 
@@ -458,7 +487,7 @@ final class PropertyCoreRepository implements PropertyCoreStore
         $record['purchase_cost'] = $record['purchase_cost'] === null
             ? null
             : (float) $record['purchase_cost'];
-        return $record;
+        return $this->enrichAssetLifecycle($record);
     }
 
     public function assetSummary(): array
@@ -542,7 +571,192 @@ final class PropertyCoreRepository implements PropertyCoreStore
             'categories' => $this->distinctAssetValues('category'),
             'locations' => $this->distinctAssetValues('location'),
             'statuses' => self::ASSET_STATUSES,
+            'lifecycles' => AssetLifecycleCalculator::LIFECYCLES,
         ];
+    }
+
+    public function lifecycleConfiguration(): array
+    {
+        $settings = $this->pdo->query(
+            "SELECT aging_threshold_percent, updated_by, updated_at
+             FROM asset_lifecycle_settings WHERE id = 1"
+        )->fetch();
+        $categories = $this->pdo->query(
+            "SELECT category, useful_life_months, remarks,
+                    updated_by, updated_at
+             FROM asset_category_useful_life
+             ORDER BY lower(category), id"
+        )->fetchAll();
+        $events = $this->pdo->query(
+            "SELECT setting_type, category, old_value, new_value,
+                    changed_by, description, created_at
+             FROM asset_lifecycle_config_events
+             ORDER BY created_at DESC, id DESC
+             LIMIT 50"
+        )->fetchAll();
+
+        foreach ($categories as &$category) {
+            $category['useful_life_months'] =
+                (int) $category['useful_life_months'];
+        }
+        unset($category);
+
+        return [
+            'aging_threshold_percent' =>
+                (int) ($settings['aging_threshold_percent'] ?? 80),
+            'updated_by' => $settings['updated_by'] ?? null,
+            'updated_at' => $settings['updated_at'] ?? null,
+            'categories' => $categories,
+            'history' => $events,
+        ];
+    }
+
+    public function updateLifecycleSettings(array $input, string $actor): array
+    {
+        $this->assertWritesAllowed();
+        $threshold = filter_var(
+            $input['aging_threshold_percent'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 99]]
+        );
+
+        if ($threshold === false) {
+            throw new PropertyCoreDomainException(
+                'INVALID_AGING_THRESHOLD',
+                'The Aging threshold must be between 1 and 99 percent.',
+                422
+            );
+        }
+
+        return $this->transaction(function () use ($threshold, $actor): array {
+            $lock = $this->pdo->query(
+                "SELECT aging_threshold_percent
+                 FROM asset_lifecycle_settings
+                 WHERE id = 1 FOR UPDATE"
+            );
+            $oldThreshold = (int) $lock->fetchColumn();
+
+            $update = $this->pdo->prepare(
+                "UPDATE asset_lifecycle_settings
+                 SET aging_threshold_percent = :threshold,
+                     updated_by = :updated_by,
+                     updated_at = now()
+                 WHERE id = 1"
+            );
+            $update->execute([
+                'threshold' => $threshold,
+                'updated_by' => $actor,
+            ]);
+
+            if ($oldThreshold !== (int) $threshold) {
+                $this->recordLifecycleConfigEvent([
+                    'setting_type' => 'AGING_THRESHOLD',
+                    'old_value' => (string) $oldThreshold,
+                    'new_value' => (string) $threshold,
+                    'changed_by' => $actor,
+                    'description' => 'Aging warning threshold updated.',
+                ]);
+            }
+
+            return $this->lifecycleConfiguration();
+        });
+    }
+
+    public function saveCategoryUsefulLife(array $input, string $actor): array
+    {
+        $this->assertWritesAllowed();
+        $category = trim((string) ($input['category'] ?? ''));
+        $months = filter_var(
+            $input['useful_life_months'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 1200]]
+        );
+        $remarks = trim((string) ($input['remarks'] ?? ''));
+
+        if ($category === '' || $this->length($category) > 100) {
+            throw new PropertyCoreDomainException(
+                'INVALID_LIFECYCLE_CATEGORY',
+                'A category of up to 100 characters is required.',
+                422
+            );
+        }
+        if ($months === false) {
+            throw new PropertyCoreDomainException(
+                'INVALID_USEFUL_LIFE',
+                'Expected useful life must be between 1 and 1200 months.',
+                422
+            );
+        }
+        if ($this->length($remarks) > 1000) {
+            throw new PropertyCoreDomainException(
+                'INVALID_LIFECYCLE_REMARKS',
+                'Remarks must not exceed 1000 characters.',
+                422
+            );
+        }
+
+        return $this->transaction(
+            function () use ($category, $months, $remarks, $actor): array {
+                $lookup = $this->pdo->prepare(
+                    "SELECT id, useful_life_months
+                     FROM asset_category_useful_life
+                     WHERE lower(category) = lower(:category)
+                     FOR UPDATE"
+                );
+                $lookup->execute(['category' => $category]);
+                $existing = $lookup->fetch();
+
+                if ($existing) {
+                    $statement = $this->pdo->prepare(
+                        "UPDATE asset_category_useful_life
+                         SET category = :category,
+                             useful_life_months = :months,
+                             remarks = :remarks,
+                             updated_by = :updated_by,
+                             updated_at = now()
+                         WHERE id = :id"
+                    );
+                    $statement->execute([
+                        'category' => $category,
+                        'months' => $months,
+                        'remarks' => $remarks === '' ? null : $remarks,
+                        'updated_by' => $actor,
+                        'id' => $existing['id'],
+                    ]);
+                    $oldValue = (string) $existing['useful_life_months'];
+                } else {
+                    $statement = $this->pdo->prepare(
+                        "INSERT INTO asset_category_useful_life (
+                            category, useful_life_months, remarks,
+                            updated_by, updated_at
+                         ) VALUES (
+                            :category, :months, :remarks,
+                            :updated_by, now()
+                         )"
+                    );
+                    $statement->execute([
+                        'category' => $category,
+                        'months' => $months,
+                        'remarks' => $remarks === '' ? null : $remarks,
+                        'updated_by' => $actor,
+                    ]);
+                    $oldValue = null;
+                }
+
+                if ($oldValue !== (string) $months) {
+                    $this->recordLifecycleConfigEvent([
+                        'setting_type' => 'CATEGORY_USEFUL_LIFE',
+                        'category' => $category,
+                        'old_value' => $oldValue,
+                        'new_value' => (string) $months,
+                        'changed_by' => $actor,
+                        'description' => 'Category expected useful life saved.',
+                    ]);
+                }
+
+                return $this->lifecycleConfiguration();
+            }
+        );
     }
 
     public function assetSuggestions(array $filters): array
@@ -732,9 +946,17 @@ final class PropertyCoreRepository implements PropertyCoreStore
         );
         $record = PropertyCoreLifecycleRules::assetUpdateInput($input);
 
-        return $this->transaction(function () use ($businessId, $record): array {
+        return $this->transaction(function () use (
+            $businessId,
+            $record,
+            $actor
+        ): array {
             $lock = $this->pdo->prepare(
-                'SELECT id FROM assets WHERE asset_id = :asset_id FOR UPDATE'
+                "SELECT id, asset_name, category, brand, model,
+                        serial_number, supplier, location, remarks, status
+                 FROM assets
+                 WHERE asset_id = :asset_id
+                 FOR UPDATE"
             );
             $lock->execute(['asset_id' => $businessId]);
             $asset = $lock->fetch();
@@ -745,6 +967,18 @@ final class PropertyCoreRepository implements PropertyCoreStore
                     'The requested Asset record was not found.',
                     404
                 );
+            }
+
+            $assetChanged = false;
+
+            foreach (array_keys($record) as $field) {
+                if (
+                    (string) ($asset[$field] ?? '') !==
+                    (string) ($record[$field] ?? '')
+                ) {
+                    $assetChanged = true;
+                    break;
+                }
             }
 
             $update = $this->pdo->prepare(
@@ -761,6 +995,20 @@ final class PropertyCoreRepository implements PropertyCoreStore
                  WHERE id = :id"
             );
             $update->execute($record + ['id' => $asset['id']]);
+
+            if ($assetChanged) {
+                $this->recordEvent([
+                    'module' => 'Asset Registry',
+                    'event_type' => 'Updated',
+                    'business_id' => $businessId,
+                    'record_name_snap' => $record['asset_name'],
+                    'category_snap' => $record['category'],
+                    'event_date' => $this->today(),
+                    'performed_by' => $actor,
+                    'description' => 'Asset details updated.',
+                ]);
+            }
+
             return $this->findAsset($businessId);
         });
     }
@@ -1078,6 +1326,154 @@ final class PropertyCoreRepository implements PropertyCoreStore
                 400
             );
         }
+    }
+
+    private function validateAssetLifecycle(string $lifecycle): void
+    {
+        if (
+            $lifecycle !== '' &&
+            !in_array($lifecycle, AssetLifecycleCalculator::LIFECYCLES, true)
+        ) {
+            throw new PropertyCoreDomainException(
+                'INVALID_ASSET_LIFECYCLE_FILTER',
+                'The requested Asset lifecycle filter is invalid.',
+                400
+            );
+        }
+    }
+
+    private function assetLifecycleReadModel(): string
+    {
+        return "(
+            SELECT age_model.*,
+                CASE
+                    WHEN age_model.acquisition_date IS NULL
+                        THEN 'Age Not Recorded'
+                    WHEN age_model.useful_life_months IS NULL
+                        THEN 'Useful Life Not Configured'
+                    WHEN age_model.asset_age_months >=
+                         age_model.useful_life_months
+                        THEN 'Retirement Review'
+                    WHEN age_model.asset_age_months * 100 >=
+                         age_model.useful_life_months *
+                         age_model.aging_threshold_percent
+                        THEN 'Aging'
+                    ELSE 'Active'
+                END AS lifecycle
+            FROM (
+                SELECT a.id, a.asset_id, a.asset_name, a.category,
+                    a.brand, a.model, a.serial_number,
+                    a.acquisition_date, a.supplier, a.location,
+                    a.custodian, a.employee_id, a.department, a.status,
+                    policy.useful_life_months,
+                    settings.aging_threshold_percent,
+                    CASE
+                        WHEN a.acquisition_date IS NULL THEN NULL
+                        ELSE GREATEST(
+                            0,
+                            (
+                                EXTRACT(YEAR FROM age(
+                                    context.analysis_date,
+                                    a.acquisition_date
+                                )) * 12 +
+                                EXTRACT(MONTH FROM age(
+                                    context.analysis_date,
+                                    a.acquisition_date
+                                ))
+                            )::integer
+                        )
+                    END AS asset_age_months
+                FROM assets a
+                CROSS JOIN asset_lifecycle_settings settings
+                CROSS JOIN (
+                    SELECT CAST(:analysis_date AS date) AS analysis_date
+                ) context
+                LEFT JOIN asset_category_useful_life policy
+                    ON lower(policy.category) = lower(a.category)
+                WHERE settings.id = 1
+            ) age_model
+        ) asset_lifecycle";
+    }
+
+    private function normalizeAssetLifecycleRecord(array $record): array
+    {
+        foreach (
+            [
+                'asset_age_months',
+                'useful_life_months',
+                'aging_threshold_percent',
+            ] as $field
+        ) {
+            $record[$field] = $record[$field] === null
+                ? null
+                : (int) $record[$field];
+        }
+        $record['asset_age'] = AssetLifecycleCalculator::durationLabel(
+            $record['asset_age_months']
+        );
+        $record['useful_life'] = AssetLifecycleCalculator::durationLabel(
+            $record['useful_life_months']
+        );
+        return $record;
+    }
+
+    private function enrichAssetLifecycle(array $record): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT useful_life_months
+             FROM asset_category_useful_life
+             WHERE lower(category) = lower(:category)
+             LIMIT 1"
+        );
+        $statement->execute(['category' => $record['category']]);
+        $usefulLife = $statement->fetchColumn();
+        $threshold = (int) $this->pdo->query(
+            "SELECT aging_threshold_percent
+             FROM asset_lifecycle_settings WHERE id = 1"
+        )->fetchColumn();
+        $ageMonths = AssetLifecycleCalculator::ageInMonths(
+            $record['acquisition_date'] ?? null
+        );
+
+        $record['asset_age_months'] = $ageMonths;
+        $record['asset_age'] = AssetLifecycleCalculator::durationLabel(
+            $ageMonths
+        );
+        $record['useful_life_months'] = $usefulLife === false
+            ? null
+            : (int) $usefulLife;
+        $record['useful_life'] = AssetLifecycleCalculator::durationLabel(
+            $record['useful_life_months']
+        );
+        $record['aging_threshold_percent'] = $threshold;
+        $record['lifecycle'] = AssetLifecycleCalculator::classify(
+            $ageMonths,
+            $record['useful_life_months'],
+            $threshold
+        );
+
+        return $record;
+    }
+
+    private function recordLifecycleConfigEvent(array $event): void
+    {
+        $statement = $this->pdo->prepare(
+            "INSERT INTO asset_lifecycle_config_events (
+                setting_type, category, old_value, new_value,
+                changed_by, description
+             ) VALUES (
+                :setting_type, :category, :old_value, :new_value,
+                :changed_by, :description
+             )"
+        );
+        $statement->execute([
+            'setting_type' => $event['setting_type'],
+            'category' => $event['category'] ?? null,
+            'old_value' => $event['old_value'] ?? null,
+            'new_value' => $event['new_value'],
+            'changed_by' => $event['changed_by'],
+            'description' => $event['description'] ?? null,
+        ]);
     }
 
     private function search(mixed $value): string

@@ -58,6 +58,9 @@
 
 <dl class="pcms-detail-grid">
     <div><dt>Acquisition Date</dt><dd data-view-field="acquisition_date">—</dd></div>
+    <div><dt>Asset Age</dt><dd data-view-field="asset_age">—</dd></div>
+    <div><dt>Expected Useful Life</dt><dd data-view-field="useful_life">Not configured</dd></div>
+    <div><dt>Lifecycle</dt><dd data-view-field="lifecycle">Not configured</dd></div>
     <div><dt>Purchase Cost</dt><dd data-view-field="purchase_cost">—</dd></div>
     <div class="pcms-detail-span-2"><dt>Remarks</dt><dd data-view-field="remarks">—</dd></div>
 </dl>

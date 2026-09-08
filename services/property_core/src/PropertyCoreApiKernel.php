@@ -32,6 +32,17 @@ final class PropertyCoreApiKernel
                 return $response;
             }
 
+            $response = $this->dispatchLifecycleConfiguration(
+                $method,
+                $path,
+                $body,
+                $actor
+            );
+
+            if ($response !== null) {
+                return $response;
+            }
+
             $response = $this->dispatchAssets(
                 $method,
                 $path,
@@ -122,6 +133,42 @@ final class PropertyCoreApiKernel
                 )
                 : $this->store->deleteInventory($matches[1], $validActor);
             return $this->success(200, $data);
+        }
+
+        return null;
+    }
+
+    private function dispatchLifecycleConfiguration(
+        string $method,
+        string $path,
+        array $body,
+        string $actor
+    ): ?array {
+        if ($method === 'GET' && $path === '/api/v1/lifecycle/configuration') {
+            return $this->success(
+                200,
+                $this->store->lifecycleConfiguration()
+            );
+        }
+
+        if ($method === 'POST' && $path === '/api/v1/lifecycle/settings') {
+            return $this->success(
+                200,
+                $this->store->updateLifecycleSettings(
+                    $body,
+                    $this->requireActor($actor)
+                )
+            );
+        }
+
+        if ($method === 'POST' && $path === '/api/v1/lifecycle/categories') {
+            return $this->success(
+                200,
+                $this->store->saveCategoryUsefulLife(
+                    $body,
+                    $this->requireActor($actor)
+                )
+            );
         }
 
         return null;

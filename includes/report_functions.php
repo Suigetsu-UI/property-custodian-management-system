@@ -528,6 +528,29 @@ function normalizeReportDateRange(
     ];
 }
 
+function buildReportDateBounds(
+    string $startDate,
+    string $endDate
+): ?array {
+    $dateRange = normalizeReportDateRange($startDate, $endDate);
+
+    if ($dateRange === null) {
+        return null;
+    }
+
+    $end = parseReportDate($dateRange['end_date']);
+
+    if (!$end) {
+        return null;
+    }
+
+    return [
+        'start_date' => $dateRange['start_date'],
+        'end_date' => $dateRange['end_date'],
+        'end_exclusive' => $end->modify('+1 day')->format('Y-m-d'),
+    ];
+}
+
 function buildPeriodReportMetrics(
     string $reportType,
     array $events
@@ -602,6 +625,7 @@ function buildPeriodReportMetrics(
             'Approved during period' => $countEvents('Procurement', 'Approved'),
             'Rejected during period' => $countEvents('Procurement', 'Rejected'),
             'Delivered during period' => $countEvents('Procurement', 'Delivered'),
+            'Procurement records updated' => $countEvents('Procurement', 'Updated'),
             'Delivered quantity' => $sumQuantity('Procurement', 'Delivered'),
         ],
         'Inventory Report' => [
@@ -614,6 +638,7 @@ function buildPeriodReportMetrics(
             'Assets registered' => $countEvents('Asset Registry', 'Registered'),
             'Assets assigned' => $countEvents('Asset Registry', 'Assigned'),
             'Assets returned' => $countEvents('Asset Registry', 'Returned'),
+            'Assets updated' => $countEvents('Asset Registry', 'Updated'),
             'Asset status changes' => $countEvents('Asset Registry', 'Status Changed'),
             'Assets deleted' => $countEvents('Asset Registry', 'Deleted'),
         ],
@@ -707,13 +732,14 @@ function getReportEventModules(string $reportType): array
 function generateHistoricalActivityReport(
     string $reportType,
     string $startDate,
-    string $endDate
+    string $endDate,
+    ?PDO $pdo = null
 ): array {
     if (!isAllowedReportType($reportType)) {
         throw new InvalidArgumentException('INVALID_REPORT_TYPE');
     }
 
-    $dateRange = normalizeReportDateRange($startDate, $endDate);
+    $dateRange = buildReportDateBounds($startDate, $endDate);
 
     if ($dateRange === null) {
         throw new InvalidArgumentException('INVALID_REPORT_DATE_RANGE');
@@ -728,7 +754,7 @@ function generateHistoricalActivityReport(
     $modulePlaceholders = [];
     $parameters = [
         'start_date' => $dateRange['start_date'],
-        'end_date' => $dateRange['end_date'],
+        'end_exclusive' => $dateRange['end_exclusive'],
     ];
 
     foreach ($modules as $index => $module) {
@@ -737,7 +763,7 @@ function generateHistoricalActivityReport(
         $parameters[$parameterName] = $module;
     }
 
-    $pdo = getDbConnection();
+    $pdo ??= getDbConnection();
 
     $stmt = $pdo->prepare(
         "SELECT
@@ -757,7 +783,8 @@ function generateHistoricalActivityReport(
             description,
             created_at
          FROM property_events
-         WHERE event_date BETWEEN :start_date AND :end_date
+         WHERE event_date >= :start_date
+           AND event_date < :end_exclusive
            AND module IN (" . implode(', ', $modulePlaceholders) . ")
          ORDER BY event_date DESC, created_at DESC, id DESC"
     );

@@ -100,6 +100,16 @@ assertPropertyCoreClient($requests[11]['query']['limit'] === 10, 'Asset options 
 assertPropertyCoreClient($requests[12]['path'] === '/api/v1/assets/filters', 'Asset filters must use one endpoint.');
 assertPropertyCoreClient($requests[13]['query']['field'] === 'brand', 'Suggestions must preserve the approved field.');
 
+$client->lifecycleConfiguration();
+$client->updateLifecycleSettings(['aging_threshold_percent' => 75], 'admin');
+$client->saveCategoryUsefulLife([
+    'category' => 'Computer',
+    'useful_life_months' => 60,
+], 'admin2');
+assertPropertyCoreClient($requests[14]['path'] === '/api/v1/lifecycle/configuration', 'Lifecycle configuration must use its versioned endpoint.');
+assertPropertyCoreClient($requests[15]['body']['aging_threshold_percent'] === 75, 'Threshold updates must preserve their payload.');
+assertPropertyCoreClient($requests[16]['actor'] === 'admin2', 'Useful-life changes must preserve the Administrator actor.');
+
 $assetId = $client->nextAssetBusinessId('admin');
 assertPropertyCoreClient($assetId === 'AST-000101', 'Asset next-ID must be unwrapped.');
 
@@ -108,12 +118,12 @@ $client->updateAsset($assetId, ['location' => 'Office'], 'admin2');
 $client->assignAsset($assetId, ['custodian' => 'John'], 'admin2');
 $client->returnAsset($assetId, 'admin2');
 $client->deleteAsset($assetId, 'admin3');
-assertPropertyCoreClient($requests[15]['path'] === '/api/v1/assets/register', 'Asset registration must use its lifecycle endpoint.');
-assertPropertyCoreClient(str_ends_with($requests[16]['path'], '/update'), 'Asset update must use an explicit endpoint.');
-assertPropertyCoreClient(str_ends_with($requests[17]['path'], '/assign'), 'Asset assignment must use an explicit endpoint.');
-assertPropertyCoreClient(str_ends_with($requests[18]['path'], '/return'), 'Asset return must use an explicit endpoint.');
-assertPropertyCoreClient(str_ends_with($requests[19]['path'], '/delete'), 'Asset delete must use an explicit endpoint.');
-assertPropertyCoreClient($requests[19]['actor'] === 'admin3', 'Asset mutation actor must reach the transport.');
+assertPropertyCoreClient($requests[18]['path'] === '/api/v1/assets/register', 'Asset registration must use its lifecycle endpoint.');
+assertPropertyCoreClient(str_ends_with($requests[19]['path'], '/update'), 'Asset update must use an explicit endpoint.');
+assertPropertyCoreClient(str_ends_with($requests[20]['path'], '/assign'), 'Asset assignment must use an explicit endpoint.');
+assertPropertyCoreClient(str_ends_with($requests[21]['path'], '/return'), 'Asset return must use an explicit endpoint.');
+assertPropertyCoreClient(str_ends_with($requests[22]['path'], '/delete'), 'Asset delete must use an explicit endpoint.');
+assertPropertyCoreClient($requests[22]['actor'] === 'admin3', 'Asset mutation actor must reach the transport.');
 
 $errorClient = new PropertyCoreServiceClient(
     'http://127.0.0.1:8102',

@@ -13,22 +13,22 @@ $selectedType =
 
 $descriptions = [
     'Asset Report' =>
-        'Current Asset Registry status plus registration, custody, and status-change history.',
+        'Asset Registry events that occurred inside the selected reporting period.',
 
     'Inventory Report' =>
-        'Current stock plus dated additions, adjustments, and stock movements.',
+        'Inventory additions, adjustments, and movements inside the selected reporting period.',
 
     'Maintenance Report' =>
-        'Current Maintenance workload plus dated lifecycle history.',
+        'Maintenance lifecycle events that occurred inside the selected reporting period.',
 
     'Procurement Report' =>
-        'Procurement totals plus dated request, approval, rejection, and delivery history.',
+        'Procurement events that occurred inside the selected reporting period.',
 
     'Audit Report' =>
-        'Audit totals plus dated lifecycle and finding history.',
+        'Audit lifecycle and finding events inside the selected reporting period.',
 
     'Full System Report' =>
-        'Combined current summary and dated activity across every Property Custodian module.'
+        'Combined dated activity from all supported modules inside the selected reporting period.'
 ];
 
 $reportRows = [];
