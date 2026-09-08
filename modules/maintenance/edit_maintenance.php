@@ -99,6 +99,7 @@ if ($isPost) {
         $assetStmt = $pdo->prepare(
             "SELECT
                 id,
+                asset_id,
                 asset_name,
                 category,
                 custodian,
