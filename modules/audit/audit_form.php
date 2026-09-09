@@ -29,6 +29,7 @@ if (!$isEdit) {
             custodian,
             status
          FROM assets
+         WHERE status <> 'Sold'
          ORDER BY id ASC"
     );
 

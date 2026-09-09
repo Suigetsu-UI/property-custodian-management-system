@@ -44,6 +44,14 @@
         <?php endforeach; ?>
     </select>
 
+    <select id="sortFilter" name="sort" aria-label="Sort Assets">
+        <option value="">Registered order</option>
+        <option value="oldest" <?= $assetFilters['sort'] === 'oldest' ? 'selected' : '' ?>>Oldest Asset First</option>
+        <option value="newest" <?= $assetFilters['sort'] === 'newest' ? 'selected' : '' ?>>Newest Asset First</option>
+        <option value="highest_usage" <?= $assetFilters['sort'] === 'highest_usage' ? 'selected' : '' ?>>Highest Lifecycle Usage</option>
+        <option value="closest_limit" <?= $assetFilters['sort'] === 'closest_limit' ? 'selected' : '' ?>>Closest to Useful-Life Limit</option>
+    </select>
+
     <button type="submit" class="btn btn-outline">Search</button>
     <a href="index.php" class="btn btn-outline">Clear Filters</a>
     <button

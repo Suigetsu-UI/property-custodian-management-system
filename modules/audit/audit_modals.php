@@ -4,7 +4,7 @@ require_once __DIR__ . "/../../auth/check_auth.php";
 if (!isset($auditAssets)) {
     require_once __DIR__ . "/../../includes/database.php";
     $auditPdo = getDbConnection();
-    $auditAssets = $auditPdo->query("SELECT id, asset_id, asset_name, category, custodian, status FROM assets ORDER BY id ASC")->fetchAll();
+    $auditAssets = $auditPdo->query("SELECT id, asset_id, asset_name, category, custodian, status FROM assets WHERE status <> 'Sold' ORDER BY id ASC")->fetchAll();
 }
 $auditResults = ['Verified', 'Missing', 'Damaged', 'For Investigation'];
 $auditStatuses = ['Scheduled', 'Ongoing', 'Completed'];

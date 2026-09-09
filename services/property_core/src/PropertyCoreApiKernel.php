@@ -32,6 +32,18 @@ final class PropertyCoreApiKernel
                 return $response;
             }
 
+            $response = $this->dispatchDispositions(
+                $method,
+                $path,
+                $query,
+                $body,
+                $actor
+            );
+
+            if ($response !== null) {
+                return $response;
+            }
+
             $response = $this->dispatchLifecycleConfiguration(
                 $method,
                 $path,
@@ -263,6 +275,86 @@ final class PropertyCoreApiKernel
         }
 
         return null;
+    }
+
+    private function dispatchDispositions(
+        string $method,
+        string $path,
+        array $query,
+        array $body,
+        string $actor
+    ): ?array {
+        if ($method === 'GET' && $path === '/api/v1/dispositions') {
+            return $this->success(200, $this->store->listDispositions($query));
+        }
+
+        if (preg_match(
+            '#^/api/v1/assets/(AST-\d{6})/disposition-review$#',
+            $path,
+            $matches
+        ) === 1) {
+            if ($method === 'GET') {
+                return $this->success(
+                    200,
+                    $this->store->dispositionReview($matches[1])
+                );
+            }
+            if ($method === 'POST') {
+                return $this->success(
+                    201,
+                    $this->store->createDisposition(
+                        $matches[1],
+                        $body,
+                        $this->requireActor($actor)
+                    )
+                );
+            }
+        }
+
+        if (preg_match(
+            '#^/api/v1/dispositions/(DSP-\d{6,})(?:/(approve|complete|reject|cancel))?$#',
+            $path,
+            $matches
+        ) !== 1) {
+            return null;
+        }
+
+        $dispositionId = $matches[1];
+        $action = $matches[2] ?? '';
+        if ($method === 'GET' && $action === '') {
+            return $this->success(
+                200,
+                $this->store->findDisposition($dispositionId)
+            );
+        }
+        if ($method !== 'POST' || $action === '') {
+            return null;
+        }
+
+        $validActor = $this->requireActor($actor);
+        $data = match ($action) {
+            'approve' => $this->store->approveDisposition(
+                $dispositionId,
+                $body,
+                $validActor
+            ),
+            'complete' => $this->store->completeDisposition(
+                $dispositionId,
+                $body,
+                $validActor
+            ),
+            'reject' => $this->store->rejectDisposition(
+                $dispositionId,
+                $body,
+                $validActor
+            ),
+            'cancel' => $this->store->cancelDisposition(
+                $dispositionId,
+                $body,
+                $validActor
+            ),
+        };
+        return $this->success(200, $data);
     }
 
     private function requireActor(string $actor): string

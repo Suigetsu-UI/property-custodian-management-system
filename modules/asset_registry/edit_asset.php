@@ -16,6 +16,11 @@ try {
     exit;
 }
 
+if (($asset['status'] ?? '') === 'Sold') {
+    header('Location: index.php?error=sold');
+    exit;
+}
+
 $categories = ['Computer', 'Furniture', 'Laboratory Equipment', 'Office Equipment', 'Electronics'];
 if (!in_array($asset['category'] ?? '', $categories, true)) {
     $categories[] = (string) ($asset['category'] ?? '');

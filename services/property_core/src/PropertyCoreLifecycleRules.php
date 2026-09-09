@@ -237,6 +237,14 @@ final class PropertyCoreLifecycleRules
         array $asset,
         bool $activeMaintenance
     ): void {
+        if (($asset['status'] ?? '') === 'Sold') {
+            throw new PropertyCoreDomainException(
+                'SOLD_ASSET_CHANGE_FORBIDDEN',
+                'A Sold Asset is a terminal historical record and cannot be changed.',
+                409
+            );
+        }
+
         if (
             ($asset['status'] ?? '') === 'Under Maintenance' ||
             $activeMaintenance

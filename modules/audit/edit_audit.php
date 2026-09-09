@@ -126,6 +126,12 @@ if ($isPost) {
             );
         }
 
+        if (($asset['status'] ?? '') === 'Sold') {
+            $pdo->rollBack();
+            header("Location: index.php?error=asset_sold");
+            exit;
+        }
+
         /*
          * Existing session implementation refreshed the stored
          * Asset snapshot when an Audit was edited.

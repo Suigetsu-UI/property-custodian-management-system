@@ -125,6 +125,15 @@ assertPropertyCoreClient(str_ends_with($requests[21]['path'], '/return'), 'Asset
 assertPropertyCoreClient(str_ends_with($requests[22]['path'], '/delete'), 'Asset delete must use an explicit endpoint.');
 assertPropertyCoreClient($requests[22]['actor'] === 'admin3', 'Asset mutation actor must reach the transport.');
 
+$client->listDispositions(['status' => 'Pending Institutional Approval']);
+$client->findDisposition('DSP-000001');
+$client->dispositionReview('AST-000001');
+$client->createDisposition('AST-000001', ['proposed_method' => 'Sale'], 'custodian1');
+$client->transitionDisposition('DSP-000001', 'approve', ['institutional_approval_reference' => 'REF-1'], 'custodian1');
+$lastRequest = $requests[array_key_last($requests)];
+assertPropertyCoreClient($lastRequest['path'] === '/api/v1/dispositions/DSP-000001/approve', 'Disposition transitions must use explicit endpoints.');
+assertPropertyCoreClient($lastRequest['actor'] === 'custodian1', 'Disposition mutation actor must reach the service.');
+
 $errorClient = new PropertyCoreServiceClient(
     'http://127.0.0.1:8102',
     str_repeat('t', 32),

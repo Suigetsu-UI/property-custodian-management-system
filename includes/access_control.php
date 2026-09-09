@@ -32,6 +32,11 @@ function isAdministrator(): bool
     return currentUserRole() === 'Administrator';
 }
 
+function isPropertyCustodian(): bool
+{
+    return currentUserRole() === 'Property Custodian';
+}
+
 function isUserAccountActive(mixed $value): bool
 {
     if (is_bool($value)) {
@@ -52,6 +57,27 @@ function requireAdministrator(): void
     }
 
     http_response_code(403);
+    $accessDeniedTitle = 'System Administrator access is required';
+    $accessDeniedMessage =
+        'Your account can use the Property Custodian modules, but only a ' .
+        'System Administrator can manage user accounts, security, and ' .
+        'lifecycle configuration.';
+    require __DIR__ . '/../access_denied.php';
+    exit;
+}
+
+function requirePropertyCustodian(): void
+{
+    if (isPropertyCustodian()) {
+        return;
+    }
+
+    http_response_code(403);
+    $accessDeniedTitle = 'Property Custodian access is required';
+    $accessDeniedMessage =
+        'System Administrators have read-only access to disposition records. ' .
+        'Only the Property Custodian can create or advance a disposition ' .
+        'transaction after external institutional approval.';
     require __DIR__ . '/../access_denied.php';
     exit;
 }

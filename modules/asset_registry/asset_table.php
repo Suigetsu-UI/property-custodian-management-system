@@ -60,6 +60,9 @@ $pageUrl = static function (int $page) use ($assetFilters): string {
         <span class="pcms-lifecycle-badge" data-lifecycle="<?= htmlspecialchars((string) ($asset['lifecycle'] ?? '')) ?>">
             <?= htmlspecialchars((string) ($asset['lifecycle'] ?? 'Not configured')) ?>
         </span>
+        <?php if (($asset['lifecycle_usage_percent'] ?? null) !== null): ?>
+        <br><small><?= htmlspecialchars(number_format((float) $asset['lifecycle_usage_percent'], 1)) ?>% of useful life</small>
+        <?php endif; ?>
     </td>
     <td><?= !empty($asset['custodian'])
         ? htmlspecialchars($asset['custodian'])
@@ -67,9 +70,14 @@ $pageUrl = static function (int $page) use ($assetFilters): string {
     <td class="asset-status"><?= htmlspecialchars($status) ?></td>
     <td>
         <a href="view_asset.php?asset_id=<?= rawurlencode($asset['asset_id']) ?>" class="btn btn-primary" data-asset-action="view">View</a>
+        <?php if ($status !== 'Sold'): ?>
         <a href="edit_asset.php?asset_id=<?= rawurlencode($asset['asset_id']) ?>" class="btn btn-warning" data-asset-action="edit">Edit</a>
+        <?php endif; ?>
+        <a href="<?= BASE_URL ?>modules/dispositions/review.php?asset_id=<?= rawurlencode($asset['asset_id']) ?>" class="btn btn-outline">Disposition</a>
 
-        <?php if ($status === 'Under Maintenance'): ?>
+        <?php if ($status === 'Sold'): ?>
+        <span>Terminal — Sold</span>
+        <?php elseif ($status === 'Under Maintenance'): ?>
         <span>Locked — Under Maintenance</span>
         <?php elseif ($status === 'Lost'): ?>
         <span>Locked — Marked Lost (Pending Audit Resolution)</span>

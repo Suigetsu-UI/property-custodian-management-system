@@ -53,6 +53,90 @@ body {
     overflow-x: hidden;
 }
 
+/* Asset disposition review */
+.disposition-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.disposition-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.disposition-heading h1 {
+    margin: 0 0 8px;
+}
+
+.disposition-heading p:last-child {
+    margin: 0;
+    max-width: 760px;
+}
+
+.disposition-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.disposition-summary-grid article {
+    padding: 18px;
+    border: 1px solid var(--border-color, #e3d9df);
+    border-radius: 16px;
+    background: var(--surface-color, #fff);
+}
+
+.disposition-summary-grid span {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--text-muted, #655b61);
+    font-size: .82rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.disposition-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin: 0;
+}
+
+.disposition-details div {
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(99, 22, 64, .04);
+}
+
+.disposition-details dt {
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.disposition-details dd {
+    margin: 0;
+}
+
+.disposition-decision-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+}
+
+.disposition-decision-grid form {
+    display: grid;
+    gap: 12px;
+}
+
+@media (max-width: 720px) {
+    .disposition-heading {
+        flex-direction: column;
+    }
+}
+
 body.sidebar-mobile-open {
     overflow: hidden;
 }

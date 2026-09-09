@@ -54,6 +54,18 @@ The selected Asset is not currently available for a new Maintenance record.
 
 <?php endif; ?>
 
+<?php if (($_GET['error'] ?? '') === 'asset_sold'): ?>
+
+<div class="error-message">
+
+Sold Assets are terminal historical records and cannot be changed through Maintenance.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
 <?php if (($_GET['error'] ?? '') === 'save_failed'): ?>
 
 <div class="error-message">

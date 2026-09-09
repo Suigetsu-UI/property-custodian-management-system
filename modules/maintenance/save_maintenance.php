@@ -107,6 +107,12 @@ try {
         exit;
     }
 
+    if (($asset['status'] ?? '') === 'Sold') {
+        $pdo->rollBack();
+        header("Location: index.php?error=asset_sold");
+        exit;
+    }
+
     /*
      * New Maintenance may only be started from the same states
      * the old UI exposed: Available or Assigned.

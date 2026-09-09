@@ -54,6 +54,18 @@ The Audit record could not be saved. Please check the entered values and try aga
 
 <?php endif; ?>
 
+<?php if (($_GET['error'] ?? '') === 'asset_sold'): ?>
+
+<div class="error-message">
+
+Sold Assets are terminal historical records and cannot be changed through Audit.
+
+</div>
+
+<br>
+
+<?php endif; ?>
+
 <div class="search-toolbar">
 
 <form

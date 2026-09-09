@@ -121,6 +121,12 @@ if ($isPost) {
             );
         }
 
+        if (($asset['status'] ?? '') === 'Sold') {
+            $pdo->rollBack();
+            header("Location: index.php?error=asset_sold");
+            exit;
+        }
+
         $updateMaintenance = $pdo->prepare(
             "UPDATE maintenance
              SET

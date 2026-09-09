@@ -119,6 +119,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        if (($asset['status'] ?? '') === 'Sold') {
+            $pdo->rollBack();
+            header("Location: index.php?error=asset_sold");
+            exit;
+        }
+
         /*
          * Preserve current Asset values as the historical Audit snapshot.
          */

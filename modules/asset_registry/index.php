@@ -9,6 +9,7 @@ $assetFilters = [
     'status' => trim((string) ($_GET['status'] ?? '')),
     'location' => trim((string) ($_GET['location'] ?? '')),
     'lifecycle' => trim((string) ($_GET['lifecycle'] ?? '')),
+    'sort' => trim((string) ($_GET['sort'] ?? '')),
     'page' => max(1, (int) ($_GET['page'] ?? 1)),
     'per_page' => 25,
 ];
@@ -25,7 +26,7 @@ $assetPage = [
 $assetFilterOptions = [
     'categories' => [],
     'locations' => [],
-    'statuses' => ['Available', 'Assigned', 'Under Maintenance', 'Lost'],
+    'statuses' => ['Available', 'Assigned', 'Under Maintenance', 'Lost', 'Sold'],
     'lifecycles' => [
         'Active', 'Aging', 'Retirement Review',
         'Useful Life Not Configured', 'Age Not Recorded',
@@ -48,6 +49,7 @@ $errorMessages = [
     'lost' => 'This Asset is marked Lost and cannot be changed until its Audit status changes.',
     'maintenance' => 'This Asset is currently under Maintenance. Complete the Maintenance record before changing it.',
     'history' => 'This Asset cannot be deleted because Maintenance or Audit history is linked to it.',
+    'sold' => 'This Asset is Sold and is retained as a read-only historical record.',
     'invalid_id' => 'The Asset ID is invalid or was not issued for this session. Please reopen Register Asset and try again.',
     'stock' => 'The selected Inventory item is no longer available for registration.',
     'inventory' => 'Please select a valid available Inventory item.',

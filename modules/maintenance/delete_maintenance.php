@@ -83,6 +83,12 @@ try {
         );
     }
 
+    if (($asset['status'] ?? '') === 'Sold') {
+        $pdo->rollBack();
+        header("Location: index.php?error=asset_sold");
+        exit;
+    }
+
     $deleteStmt = $pdo->prepare(
         "DELETE FROM maintenance
          WHERE id = :id"

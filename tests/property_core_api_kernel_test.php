@@ -136,6 +136,54 @@ final class FakePropertyCoreStore implements PropertyCoreStore
         return ['categories' => [$input + ['updated_by' => $actor]]];
     }
 
+    public function listDispositions(array $filters): array
+    {
+        $this->called(__FUNCTION__, $filters);
+        return ['records' => [], 'pagination' => ['page' => 1, 'total' => 0]];
+    }
+
+    public function findDisposition(string $dispositionId): array
+    {
+        $this->called(__FUNCTION__, [$dispositionId]);
+        return ['disposition_id' => $dispositionId];
+    }
+
+    public function dispositionReview(string $assetBusinessId): array
+    {
+        $this->called(__FUNCTION__, [$assetBusinessId]);
+        return ['asset' => ['asset_id' => $assetBusinessId]];
+    }
+
+    public function createDisposition(string $assetBusinessId, array $input, string $actor): array
+    {
+        $this->called(__FUNCTION__, [$assetBusinessId, $input, $actor]);
+        return ['disposition_id' => 'DSP-000001', 'asset_id' => $assetBusinessId];
+    }
+
+    public function approveDisposition(string $dispositionId, array $input, string $actor): array
+    {
+        $this->called(__FUNCTION__, [$dispositionId, $input, $actor]);
+        return ['disposition_id' => $dispositionId, 'status' => 'Approved for Sale/Bidding'];
+    }
+
+    public function completeDisposition(string $dispositionId, array $input, string $actor): array
+    {
+        $this->called(__FUNCTION__, [$dispositionId, $input, $actor]);
+        return ['disposition_id' => $dispositionId, 'status' => 'Sold'];
+    }
+
+    public function rejectDisposition(string $dispositionId, array $input, string $actor): array
+    {
+        $this->called(__FUNCTION__, [$dispositionId, $input, $actor]);
+        return ['disposition_id' => $dispositionId, 'status' => 'Rejected'];
+    }
+
+    public function cancelDisposition(string $dispositionId, array $input, string $actor): array
+    {
+        $this->called(__FUNCTION__, [$dispositionId, $input, $actor]);
+        return ['disposition_id' => $dispositionId, 'status' => 'Cancelled'];
+    }
+
     public function nextAssetBusinessId(): string
     {
         $this->called(__FUNCTION__);
@@ -276,6 +324,21 @@ assertPropertyCoreApi($updated['body']['data']['location'] === 'Office', 'Asset 
 
 $deleted = $kernel->dispatch('POST', '/api/v1/assets/AST-000003/delete', [], [], 'admin3');
 assertPropertyCoreApi($deleted['body']['data']['deleted'] === true, 'Asset deletion must use an explicit POST operation.');
+
+$dispositions = $kernel->dispatch('GET', '/api/v1/dispositions', ['status' => 'Sold']);
+assertPropertyCoreApi($dispositions['status'] === 200, 'Disposition history must have a bounded list route.');
+
+$review = $kernel->dispatch('GET', '/api/v1/assets/AST-000003/disposition-review');
+assertPropertyCoreApi($review['body']['data']['asset']['asset_id'] === 'AST-000003', 'Disposition review must use the Asset business ID.');
+
+$createdDisposition = $kernel->dispatch('POST', '/api/v1/assets/AST-000003/disposition-review', [], ['proposed_method' => 'Sale'], 'custodian1');
+assertPropertyCoreApi($createdDisposition['status'] === 201, 'Disposition creation must return HTTP 201.');
+
+$approvedDisposition = $kernel->dispatch('POST', '/api/v1/dispositions/DSP-000001/approve', [], ['institutional_approval_reference' => 'REF-1'], 'custodian1');
+assertPropertyCoreApi($approvedDisposition['body']['data']['status'] === 'Approved for Sale/Bidding', 'Disposition approval must have an explicit transition route.');
+
+$soldDisposition = $kernel->dispatch('POST', '/api/v1/dispositions/DSP-000001/complete', [], ['completion_reference' => 'SALE-1'], 'custodian1');
+assertPropertyCoreApi($soldDisposition['body']['data']['status'] === 'Sold', 'Sale completion must have an explicit transition route.');
 
 $method = $kernel->dispatch('DELETE', '/api/v1/assets/AST-000001');
 assertPropertyCoreApi($method['status'] === 405 && $method['body']['error']['code'] === 'METHOD_NOT_ALLOWED', 'Unsupported methods must be rejected safely.');

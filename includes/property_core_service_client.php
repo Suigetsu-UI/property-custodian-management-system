@@ -225,6 +225,62 @@ final class PropertyCoreServiceClient
         );
     }
 
+    public function listDispositions(array $filters = []): array
+    {
+        return $this->request('GET', '/api/v1/dispositions', $filters);
+    }
+
+    public function findDisposition(string $dispositionId): array
+    {
+        return $this->request(
+            'GET',
+            '/api/v1/dispositions/' . rawurlencode($dispositionId)
+        );
+    }
+
+    public function dispositionReview(string $assetBusinessId): array
+    {
+        return $this->request(
+            'GET',
+            '/api/v1/assets/' . rawurlencode($assetBusinessId) .
+                '/disposition-review'
+        );
+    }
+
+    public function createDisposition(
+        string $assetBusinessId,
+        array $record,
+        string $actor
+    ): array {
+        return $this->request(
+            'POST',
+            '/api/v1/assets/' . rawurlencode($assetBusinessId) .
+                '/disposition-review',
+            [],
+            $record,
+            $actor
+        );
+    }
+
+    public function transitionDisposition(
+        string $dispositionId,
+        string $action,
+        array $record,
+        string $actor
+    ): array {
+        if (!in_array($action, ['approve', 'complete', 'reject', 'cancel'], true)) {
+            throw new InvalidArgumentException('Invalid disposition action.');
+        }
+        return $this->request(
+            'POST',
+            '/api/v1/dispositions/' . rawurlencode($dispositionId) .
+                '/' . $action,
+            [],
+            $record,
+            $actor
+        );
+    }
+
     public function nextAssetBusinessId(string $actor): string
     {
         $data = $this->request(

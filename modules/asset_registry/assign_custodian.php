@@ -17,6 +17,10 @@ try {
 }
 
 $status = (string) ($asset['status'] ?? '');
+if ($status === 'Sold') {
+    header('Location: index.php?error=sold');
+    exit;
+}
 if ($status === 'Under Maintenance') {
     header('Location: index.php?error=maintenance');
     exit;

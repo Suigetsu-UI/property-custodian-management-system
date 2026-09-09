@@ -640,6 +640,9 @@ function buildPeriodReportMetrics(
             'Assets returned' => $countEvents('Asset Registry', 'Returned'),
             'Assets updated' => $countEvents('Asset Registry', 'Updated'),
             'Asset status changes' => $countEvents('Asset Registry', 'Status Changed'),
+            'Disposition requests' => $countEvents('Asset Registry', 'Disposition Requested'),
+            'Disposition approvals' => $countEvents('Asset Registry', 'Approved for Sale/Bidding'),
+            'Assets sold' => $countEvents('Asset Registry', 'Asset Sold'),
             'Assets deleted' => $countEvents('Asset Registry', 'Deleted'),
         ],
         'Maintenance Report' => [

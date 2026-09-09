@@ -307,7 +307,7 @@ assertPropertyCoreGate3(
     'Asset summary must be available.'
 );
 assertPropertyCoreGate3(
-    count($repository->assetFilters()['statuses']) === 4,
+    count($repository->assetFilters()['statuses']) === 5,
     'Asset filters must expose the frozen status set.'
 );
 assertPropertyCoreGate3(
@@ -400,7 +400,7 @@ $filtersHttp = propertyCoreGate3Http(
 );
 assertPropertyCoreGate3(
     $filtersHttp['status'] === 200 &&
-    count($filtersHttp['body']['data']['statuses']) === 4,
+    count($filtersHttp['body']['data']['statuses']) === 5,
     'The live Asset filter endpoint must expose bounded values.'
 );
 $suggestionsHttp = propertyCoreGate3Http(

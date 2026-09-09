@@ -5,19 +5,21 @@ require_once __DIR__ . '/PropertyCoreStore.php';
 require_once __DIR__ . '/PropertyCoreLifecycleRules.php';
 require_once __DIR__ . '/PropertyCoreTransactionRunner.php';
 require_once __DIR__ . '/AssetLifecycleCalculator.php';
+require_once __DIR__ . '/AssetDispositionRules.php';
 
 final class PropertyCoreRepository implements PropertyCoreStore
 {
     private readonly PropertyCoreTransactionRunner $transactionRunner;
     private const ASSET_STATUSES = [
-        'Available', 'Assigned', 'Under Maintenance', 'Lost',
+        'Available', 'Assigned', 'Under Maintenance', 'Lost', 'Sold',
     ];
     private const INVENTORY_COLUMNS =
         'inventory_id, asset_name, category, quantity, condition';
     private const ASSET_LIST_COLUMNS =
         'asset_id, asset_name, category, acquisition_date, custodian, status,
          asset_age_months, useful_life_months, aging_threshold_percent,
-         lifecycle';
+         lifecycle, lifecycle_usage_percent, disposition_id,
+         disposition_status';
 
     public function __construct(
         private readonly PDO $pdo,
@@ -406,8 +408,10 @@ final class PropertyCoreRepository implements PropertyCoreStore
         $status = trim((string) ($filters['status'] ?? ''));
         $location = trim((string) ($filters['location'] ?? ''));
         $lifecycle = trim((string) ($filters['lifecycle'] ?? ''));
+        $sort = trim((string) ($filters['sort'] ?? ''));
         $this->validateAssetStatus($status);
         $this->validateAssetLifecycle($lifecycle);
+        $orderBy = $this->assetOrderBy($sort);
         $where = [];
         $params = ['analysis_date' => $this->today()];
 
@@ -456,15 +460,18 @@ final class PropertyCoreRepository implements PropertyCoreStore
                 'status' => $status,
                 'location' => $location,
                 'lifecycle' => $lifecycle,
+                'sort' => $sort,
             ],
-            [$this, 'normalizeAssetLifecycleRecord']
+            [$this, 'normalizeAssetLifecycleRecord'],
+            $orderBy
         );
     }
 
     public function findAsset(string $businessId): array
     {
         $statement = $this->pdo->prepare(
-            "SELECT a.asset_id, a.asset_name, a.category, a.brand, a.model,
+            "SELECT a.id AS asset_row_id, a.asset_id, a.asset_name,
+                a.category, a.brand, a.model,
                 a.serial_number, a.acquisition_date, a.purchase_cost,
                 a.supplier, a.location, a.remarks, a.status, a.custodian,
                 a.employee_id, a.department, a.date_assigned,
@@ -487,7 +494,10 @@ final class PropertyCoreRepository implements PropertyCoreStore
         $record['purchase_cost'] = $record['purchase_cost'] === null
             ? null
             : (float) $record['purchase_cost'];
-        return $this->enrichAssetLifecycle($record);
+        $record['asset_row_id'] = (int) $record['asset_row_id'];
+        $record = $this->enrichAssetLifecycle($record);
+        unset($record['asset_row_id']);
+        return $record;
     }
 
     public function assetSummary(): array
@@ -500,6 +510,7 @@ final class PropertyCoreRepository implements PropertyCoreStore
                     WHERE status = 'Under Maintenance'
                 ) AS under_maintenance,
                 COUNT(*) FILTER (WHERE status = 'Lost') AS lost
+                , COUNT(*) FILTER (WHERE status = 'Sold') AS sold
              FROM assets"
         )->fetch();
         $rows = $this->pdo->query(
@@ -519,6 +530,7 @@ final class PropertyCoreRepository implements PropertyCoreStore
             'under_maintenance' =>
                 (int) ($counts['under_maintenance'] ?? 0),
             'lost' => (int) ($counts['lost'] ?? 0),
+            'sold' => (int) ($counts['sold'] ?? 0),
             'by_category' => $byCategory,
         ];
     }
@@ -534,7 +546,9 @@ final class PropertyCoreRepository implements PropertyCoreStore
             return $this->optionEnvelope([], $search, $limit);
         }
 
-        $statusSql = $status === '' ? '' : ' AND status = :status';
+        $statusSql = $status === ''
+            ? " AND status <> 'Sold'"
+            : ' AND status = :status';
         $statement = $this->pdo->prepare(
             "SELECT id AS asset_row_id, asset_id, asset_name, category,
                 serial_number, location, custodian, status
@@ -759,6 +773,402 @@ final class PropertyCoreRepository implements PropertyCoreStore
         );
     }
 
+    public function listDispositions(array $filters): array
+    {
+        [$page, $perPage] = $this->paginationInput($filters);
+        $search = $this->search($filters['search'] ?? '');
+        $status = trim((string) ($filters['status'] ?? ''));
+
+        if ($status !== '' && !in_array($status, AssetDispositionRules::STATUSES, true)) {
+            throw new PropertyCoreDomainException(
+                'INVALID_DISPOSITION_STATUS_FILTER',
+                'The requested disposition status filter is invalid.',
+                400
+            );
+        }
+
+        $where = [];
+        $params = [];
+        if ($search !== '') {
+            $where[] = "lower(
+                coalesce(disposition_id, '') || ' ' ||
+                coalesce(asset_business_id, '') || ' ' ||
+                coalesce(asset_name, '') || ' ' ||
+                coalesce(reason, '') || ' ' ||
+                coalesce(institutional_approval_reference, '')
+            ) LIKE :search";
+            $params['search'] = '%' . $this->lower($search) . '%';
+        }
+        if ($status !== '') {
+            $where[] = 'status = :status';
+            $params['status'] = $status;
+        }
+
+        return $this->pagedList(
+            "(
+                SELECT d.id, d.disposition_id, d.asset_id, d.requested_by,
+                    d.requested_at, d.reason, d.proposed_method,
+                    d.status, d.institutional_approval_reference,
+                    d.institutional_approval_date, d.completed_at,
+                    d.created_at,
+                    a.asset_id AS asset_business_id,
+                    a.asset_name, a.category, a.status AS asset_status
+                FROM asset_dispositions d
+                JOIN assets a ON a.id = d.asset_id
+            ) dispositions",
+            'disposition_id, asset_business_id, asset_name, category,
+             asset_status, proposed_method, reason, status, requested_by,
+             requested_at, institutional_approval_reference,
+             institutional_approval_date, completed_at, created_at',
+            $where,
+            $params,
+            $page,
+            $perPage,
+            ['search' => $search, 'status' => $status],
+            null,
+            'created_at DESC, id DESC'
+        );
+    }
+
+    public function findDisposition(string $dispositionId): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT d.id, d.disposition_id, d.asset_id,
+                d.requested_by, d.requested_at, d.reason,
+                d.proposed_method, d.request_remarks,
+                d.asset_age_months_snapshot, d.useful_life_months_snapshot,
+                d.lifecycle_snapshot, d.latest_audit_id_snapshot,
+                d.latest_audit_result_snapshot, d.latest_audit_date_snapshot,
+                d.status, d.institutional_approval_reference,
+                d.institutional_approver_name,
+                d.institutional_approver_position,
+                d.institutional_approval_date, d.approval_remarks,
+                d.approval_recorded_by, d.approval_recorded_at,
+                d.completed_by, d.completed_at, d.completion_reference,
+                d.completion_remarks, d.status_note, d.status_changed_by,
+                d.status_changed_at, d.created_at, d.updated_at,
+                a.asset_id AS asset_business_id,
+                a.asset_name, a.category, a.status AS asset_status,
+                a.custodian, a.employee_id, a.department
+             FROM asset_dispositions d
+             JOIN assets a ON a.id = d.asset_id
+             WHERE d.disposition_id = :disposition_id"
+        );
+        $statement->execute(['disposition_id' => $dispositionId]);
+        $record = $statement->fetch();
+
+        if (!$record) {
+            throw new PropertyCoreDomainException(
+                'DISPOSITION_NOT_FOUND',
+                'The requested disposition record was not found.',
+                404
+            );
+        }
+
+        return $this->normalizeDisposition($record);
+    }
+
+    public function dispositionReview(string $assetBusinessId): array
+    {
+        PropertyCoreLifecycleRules::businessId(
+            $assetBusinessId,
+            'AST',
+            'INVALID_ASSET_ID'
+        );
+        $asset = $this->findAsset($assetBusinessId);
+        $assetIdStatement = $this->pdo->prepare(
+            'SELECT id FROM assets WHERE asset_id = :asset_id'
+        );
+        $assetIdStatement->execute(['asset_id' => $assetBusinessId]);
+        $assetRowId = (int) $assetIdStatement->fetchColumn();
+        $evidence = $this->dispositionEvidence($assetRowId);
+        $latestDisposition = $this->latestDispositionForAsset($assetRowId);
+
+        return [
+            'asset' => $asset,
+            'latest_completed_audit' => $evidence['latest_completed_audit'],
+            'has_active_maintenance' => $evidence['has_active_maintenance'],
+            'has_open_audit' => $evidence['has_open_audit'],
+            'approval_blockers' => AssetDispositionRules::approvalBlockers(
+                $asset,
+                $evidence['has_active_maintenance'],
+                $evidence['has_open_audit'],
+                $evidence['latest_completed_audit']
+            ),
+            'latest_disposition' => $latestDisposition,
+            'request_blockers' => AssetDispositionRules::requestBlockers(
+                $asset,
+                $latestDisposition !== null && in_array(
+                    $latestDisposition['status'],
+                    ['Pending Institutional Approval', 'Approved for Sale/Bidding'],
+                    true
+                )
+            ),
+        ];
+    }
+
+    public function createDisposition(
+        string $assetBusinessId,
+        array $input,
+        string $actor
+    ): array {
+        $this->assertWritesAllowed();
+        PropertyCoreLifecycleRules::businessId(
+            $assetBusinessId,
+            'AST',
+            'INVALID_ASSET_ID'
+        );
+        $record = AssetDispositionRules::requestInput($input);
+
+        return $this->transaction(function () use (
+            $assetBusinessId,
+            $record,
+            $actor
+        ): array {
+            $asset = $this->lockAsset($assetBusinessId);
+            $open = $this->openDispositionForAsset((int) $asset['id'], true);
+            AssetDispositionRules::assertNoBlockers(
+                AssetDispositionRules::requestBlockers($asset, $open !== null)
+            );
+
+            $lifecycle = $this->enrichAssetLifecycle($asset);
+            $evidence = $this->dispositionEvidence((int) $asset['id']);
+            $audit = $evidence['latest_completed_audit'];
+            $dispositionId = $this->nextBusinessId(
+                'asset_disposition_business_id_seq',
+                'DSP'
+            );
+            $statement = $this->pdo->prepare(
+                "INSERT INTO asset_dispositions (
+                    disposition_id, asset_id, requested_by, reason,
+                    proposed_method, request_remarks,
+                    asset_age_months_snapshot, useful_life_months_snapshot,
+                    lifecycle_snapshot, latest_audit_id_snapshot,
+                    latest_audit_result_snapshot, latest_audit_date_snapshot,
+                    status_changed_by
+                 ) VALUES (
+                    :disposition_id, :asset_id, :requested_by, :reason,
+                    :proposed_method, :request_remarks,
+                    :asset_age, :useful_life, :lifecycle,
+                    :audit_id, :audit_result, :audit_date, :status_changed_by
+                 )"
+            );
+            $statement->execute([
+                'disposition_id' => $dispositionId,
+                'asset_id' => $asset['id'],
+                'requested_by' => $actor,
+                'reason' => $record['reason'],
+                'proposed_method' => $record['proposed_method'],
+                'request_remarks' => $record['request_remarks'],
+                'asset_age' => $lifecycle['asset_age_months'],
+                'useful_life' => $lifecycle['useful_life_months'],
+                'lifecycle' => $lifecycle['lifecycle'],
+                'audit_id' => $audit['audit_id'] ?? null,
+                'audit_result' => $audit['result'] ?? null,
+                'audit_date' => $audit['audit_date'] ?? null,
+                'status_changed_by' => $actor,
+            ]);
+            $this->recordDispositionEvent(
+                $asset,
+                $dispositionId,
+                'Disposition Requested',
+                null,
+                'Pending Institutional Approval',
+                $record['proposed_method'],
+                $actor,
+                $record['reason']
+            );
+            return $this->findDisposition($dispositionId);
+        });
+    }
+
+    public function approveDisposition(
+        string $dispositionId,
+        array $input,
+        string $actor
+    ): array {
+        $this->assertWritesAllowed();
+        $record = AssetDispositionRules::approvalInput($input, $this->today());
+
+        return $this->transaction(function () use (
+            $dispositionId,
+            $record,
+            $actor
+        ): array {
+            [$asset, $disposition] = $this->lockDispositionContext($dispositionId);
+            AssetDispositionRules::assertTransition($disposition['status'], 'approve');
+            $evidence = $this->dispositionEvidence((int) $asset['id']);
+            AssetDispositionRules::assertNoBlockers(
+                AssetDispositionRules::approvalBlockers(
+                    $asset,
+                    $evidence['has_active_maintenance'],
+                    $evidence['has_open_audit'],
+                    $evidence['latest_completed_audit']
+                )
+            );
+            $audit = $evidence['latest_completed_audit'];
+            $statement = $this->pdo->prepare(
+                "UPDATE asset_dispositions SET
+                    status = 'Approved for Sale/Bidding',
+                    institutional_approval_reference = :reference,
+                    institutional_approver_name = :approver_name,
+                    institutional_approver_position = :approver_position,
+                    institutional_approval_date = :approval_date,
+                    approval_remarks = :approval_remarks,
+                    approval_recorded_by = :recorded_by,
+                    approval_recorded_at = now(),
+                    latest_audit_id_snapshot = :audit_id,
+                    latest_audit_result_snapshot = :audit_result,
+                    latest_audit_date_snapshot = :audit_date,
+                    status_changed_by = :recorded_by,
+                    status_changed_at = now(), updated_at = now()
+                 WHERE id = :id"
+            );
+            $statement->execute([
+                'reference' => $record['institutional_approval_reference'],
+                'approver_name' => $record['institutional_approver_name'],
+                'approver_position' => $record['institutional_approver_position'],
+                'approval_date' => $record['institutional_approval_date'],
+                'approval_remarks' => $record['approval_remarks'],
+                'recorded_by' => $actor,
+                'audit_id' => $audit['audit_id'],
+                'audit_result' => $audit['result'],
+                'audit_date' => $audit['audit_date'],
+                'id' => $disposition['id'],
+            ]);
+            $description = 'External institutional approval recorded under reference ' .
+                $record['institutional_approval_reference'] . '.';
+            $this->recordDispositionEvent(
+                $asset,
+                $dispositionId,
+                'Institutional Approval Recorded',
+                $disposition['status'],
+                'Approved for Sale/Bidding',
+                $disposition['proposed_method'],
+                $actor,
+                $description
+            );
+            $this->recordDispositionEvent(
+                $asset,
+                $dispositionId,
+                'Approved for Sale/Bidding',
+                $disposition['status'],
+                'Approved for Sale/Bidding',
+                $disposition['proposed_method'],
+                $actor,
+                $description
+            );
+            return $this->findDisposition($dispositionId);
+        });
+    }
+
+    public function completeDisposition(
+        string $dispositionId,
+        array $input,
+        string $actor
+    ): array {
+        $this->assertWritesAllowed();
+        $record = AssetDispositionRules::completionInput($input);
+
+        return $this->transaction(function () use (
+            $dispositionId,
+            $record,
+            $actor
+        ): array {
+            [$asset, $disposition] = $this->lockDispositionContext($dispositionId);
+            AssetDispositionRules::assertTransition($disposition['status'], 'complete');
+            $evidence = $this->dispositionEvidence((int) $asset['id']);
+            AssetDispositionRules::assertNoBlockers(
+                AssetDispositionRules::approvalBlockers(
+                    $asset,
+                    $evidence['has_active_maintenance'],
+                    $evidence['has_open_audit'],
+                    $evidence['latest_completed_audit']
+                )
+            );
+            if (trim((string) ($disposition['institutional_approval_reference'] ?? '')) === '') {
+                throw new PropertyCoreDomainException(
+                    'DISPOSITION_APPROVAL_REQUIRED',
+                    'External institutional approval must be recorded before sale.',
+                    409
+                );
+            }
+
+            $assetUpdate = $this->pdo->prepare(
+                "UPDATE assets SET status = 'Sold', employee_id = NULL,
+                    custodian = NULL, department = NULL, date_assigned = NULL,
+                    updated_at = now()
+                 WHERE id = :id AND status = 'Available'"
+            );
+            $assetUpdate->execute(['id' => $asset['id']]);
+            if ($assetUpdate->rowCount() !== 1) {
+                throw new PropertyCoreDomainException(
+                    'ASSET_STATE_CHANGED',
+                    'The Asset state changed; refresh and retry.',
+                    409
+                );
+            }
+
+            $statement = $this->pdo->prepare(
+                "UPDATE asset_dispositions SET status = 'Sold',
+                    completed_by = :completed_by, completed_at = now(),
+                    completion_reference = :completion_reference,
+                    completion_remarks = :completion_remarks,
+                    status_changed_by = :completed_by,
+                    status_changed_at = now(), updated_at = now()
+                 WHERE id = :id"
+            );
+            $statement->execute([
+                'completed_by' => $actor,
+                'completion_reference' => $record['completion_reference'],
+                'completion_remarks' => $record['completion_remarks'],
+                'id' => $disposition['id'],
+            ]);
+            $this->recordDispositionEvent(
+                $asset,
+                $dispositionId,
+                'Asset Sold',
+                $asset['status'],
+                'Sold',
+                $disposition['proposed_method'],
+                $actor,
+                'Sale/bidding completion recorded under reference ' .
+                    $record['completion_reference'] . '. Inventory was unchanged.'
+            );
+            return $this->findDisposition($dispositionId);
+        });
+    }
+
+    public function rejectDisposition(
+        string $dispositionId,
+        array $input,
+        string $actor
+    ): array {
+        return $this->closeDisposition(
+            $dispositionId,
+            $input,
+            $actor,
+            'Rejected',
+            'reject',
+            'Disposition Rejected'
+        );
+    }
+
+    public function cancelDisposition(
+        string $dispositionId,
+        array $input,
+        string $actor
+    ): array {
+        return $this->closeDisposition(
+            $dispositionId,
+            $input,
+            $actor,
+            'Cancelled',
+            'cancel',
+            'Disposition Cancelled'
+        );
+    }
+
     public function assetSuggestions(array $filters): array
     {
         $field = trim((string) ($filters['field'] ?? ''));
@@ -966,6 +1376,14 @@ final class PropertyCoreRepository implements PropertyCoreStore
                     'ASSET_NOT_FOUND',
                     'The requested Asset record was not found.',
                     404
+                );
+            }
+
+            if (($asset['status'] ?? '') === 'Sold') {
+                throw new PropertyCoreDomainException(
+                    'SOLD_ASSET_CHANGE_FORBIDDEN',
+                    'A Sold Asset is retained as a read-only historical record.',
+                    409
                 );
             }
 
@@ -1240,7 +1658,8 @@ final class PropertyCoreRepository implements PropertyCoreStore
         int $page,
         int $perPage,
         array $filters,
-        ?callable $normalizer = null
+        ?callable $normalizer = null,
+        string $orderBy = 'id'
     ): array {
         $whereSql = $where === []
             ? ''
@@ -1255,7 +1674,7 @@ final class PropertyCoreRepository implements PropertyCoreStore
         $offset = ($page - 1) * $perPage;
         $statement = $this->pdo->prepare(
             'SELECT ' . $columns . ' FROM ' . $table . $whereSql .
-            ' ORDER BY id LIMIT :limit OFFSET :offset'
+            ' ORDER BY ' . $orderBy . ' LIMIT :limit OFFSET :offset'
         );
         foreach ($params as $name => $value) {
             $statement->bindValue(':' . $name, $value, PDO::PARAM_STR);
@@ -1342,6 +1761,24 @@ final class PropertyCoreRepository implements PropertyCoreStore
         }
     }
 
+    private function assetOrderBy(string $sort): string
+    {
+        return match ($sort) {
+            'newest' => 'acquisition_date DESC NULLS LAST, id DESC',
+            'oldest' => 'acquisition_date ASC NULLS LAST, id',
+            'highest_usage' =>
+                'lifecycle_usage_percent DESC NULLS LAST, acquisition_date ASC NULLS LAST, id',
+            'closest_limit' =>
+                'abs(lifecycle_usage_percent - 100) ASC NULLS LAST, id',
+            '', 'registered' => 'id',
+            default => throw new PropertyCoreDomainException(
+                'INVALID_ASSET_SORT',
+                'The requested Asset sorting option is invalid.',
+                400
+            ),
+        };
+    }
+
     private function assetLifecycleReadModel(): string
     {
         return "(
@@ -1359,12 +1796,24 @@ final class PropertyCoreRepository implements PropertyCoreStore
                          age_model.aging_threshold_percent
                         THEN 'Aging'
                     ELSE 'Active'
-                END AS lifecycle
+                END AS lifecycle,
+                CASE
+                    WHEN age_model.asset_age_months IS NULL OR
+                         age_model.useful_life_months IS NULL
+                        THEN NULL
+                    ELSE round(
+                        age_model.asset_age_months::numeric * 100 /
+                        age_model.useful_life_months,
+                        1
+                    )
+                END AS lifecycle_usage_percent
             FROM (
                 SELECT a.id, a.asset_id, a.asset_name, a.category,
                     a.brand, a.model, a.serial_number,
                     a.acquisition_date, a.supplier, a.location,
                     a.custodian, a.employee_id, a.department, a.status,
+                    disposition.disposition_id,
+                    disposition.status AS disposition_status,
                     policy.useful_life_months,
                     settings.aging_threshold_percent,
                     CASE
@@ -1390,6 +1839,13 @@ final class PropertyCoreRepository implements PropertyCoreStore
                 ) context
                 LEFT JOIN asset_category_useful_life policy
                     ON lower(policy.category) = lower(a.category)
+                LEFT JOIN LATERAL (
+                    SELECT d.disposition_id, d.status
+                    FROM asset_dispositions d
+                    WHERE d.asset_id = a.id
+                    ORDER BY d.created_at DESC, d.id DESC
+                    LIMIT 1
+                ) disposition ON true
                 WHERE settings.id = 1
             ) age_model
         ) asset_lifecycle";
@@ -1414,6 +1870,10 @@ final class PropertyCoreRepository implements PropertyCoreStore
         $record['useful_life'] = AssetLifecycleCalculator::durationLabel(
             $record['useful_life_months']
         );
+        $record['lifecycle_usage_percent'] =
+            $record['lifecycle_usage_percent'] === null
+                ? null
+                : (float) $record['lifecycle_usage_percent'];
         return $record;
     }
 
@@ -1451,8 +1911,255 @@ final class PropertyCoreRepository implements PropertyCoreStore
             $record['useful_life_months'],
             $threshold
         );
+        $record['lifecycle_usage_percent'] =
+            $ageMonths !== null && $record['useful_life_months'] !== null
+                ? round(
+                    ($ageMonths * 100) / $record['useful_life_months'],
+                    1
+                )
+                : null;
+        $disposition = $this->latestDispositionForAsset(
+            (int) ($record['asset_row_id'] ?? $record['id'] ?? 0)
+        );
+        $record['disposition_id'] = $disposition['disposition_id'] ?? null;
+        $record['disposition_status'] = $disposition['status'] ?? null;
 
         return $record;
+    }
+
+    private function dispositionEvidence(int $assetRowId): array
+    {
+        $activeMaintenance = $this->pdo->prepare(
+            "SELECT EXISTS(
+                SELECT 1 FROM maintenance
+                WHERE asset_id = :asset_id
+                  AND status IN ('Scheduled', 'In Progress')
+            )"
+        );
+        $activeMaintenance->execute(['asset_id' => $assetRowId]);
+
+        $openAudit = $this->pdo->prepare(
+            "SELECT EXISTS(
+                SELECT 1 FROM audits
+                WHERE asset_id = :asset_id
+                  AND status IN ('Scheduled', 'Ongoing')
+            )"
+        );
+        $openAudit->execute(['asset_id' => $assetRowId]);
+
+        $latestAudit = $this->pdo->prepare(
+            "SELECT audit_id, audit_date, result, auditor, remarks
+             FROM audits
+             WHERE asset_id = :asset_id AND status = 'Completed'
+             ORDER BY audit_date DESC NULLS LAST, id DESC
+             LIMIT 1"
+        );
+        $latestAudit->execute(['asset_id' => $assetRowId]);
+        $audit = $latestAudit->fetch();
+
+        return [
+            'has_active_maintenance' => filter_var(
+                $activeMaintenance->fetchColumn(),
+                FILTER_VALIDATE_BOOLEAN
+            ),
+            'has_open_audit' => filter_var(
+                $openAudit->fetchColumn(),
+                FILTER_VALIDATE_BOOLEAN
+            ),
+            'latest_completed_audit' => $audit ?: null,
+        ];
+    }
+
+    private function latestDispositionForAsset(int $assetRowId): ?array
+    {
+        if ($assetRowId <= 0) {
+            return null;
+        }
+        $statement = $this->pdo->prepare(
+            "SELECT disposition_id, status, proposed_method, requested_at,
+                    institutional_approval_reference, completed_at
+             FROM asset_dispositions
+             WHERE asset_id = :asset_id
+             ORDER BY created_at DESC, id DESC
+             LIMIT 1"
+        );
+        $statement->execute(['asset_id' => $assetRowId]);
+        $record = $statement->fetch();
+        return $record ?: null;
+    }
+
+    private function openDispositionForAsset(
+        int $assetRowId,
+        bool $lock = false
+    ): ?array {
+        $statement = $this->pdo->prepare(
+            "SELECT id, disposition_id, status
+             FROM asset_dispositions
+             WHERE asset_id = :asset_id
+               AND status IN (
+                    'Pending Institutional Approval',
+                    'Approved for Sale/Bidding'
+               )
+             ORDER BY id DESC LIMIT 1" . ($lock ? ' FOR UPDATE' : '')
+        );
+        $statement->execute(['asset_id' => $assetRowId]);
+        $record = $statement->fetch();
+        return $record ?: null;
+    }
+
+    private function lockDispositionContext(string $dispositionId): array
+    {
+        PropertyCoreLifecycleRules::businessId(
+            $dispositionId,
+            'DSP',
+            'INVALID_DISPOSITION_ID'
+        );
+        $lookup = $this->pdo->prepare(
+            'SELECT id, asset_id FROM asset_dispositions WHERE disposition_id = :id'
+        );
+        $lookup->execute(['id' => $dispositionId]);
+        $reference = $lookup->fetch();
+        if (!$reference) {
+            throw new PropertyCoreDomainException(
+                'DISPOSITION_NOT_FOUND',
+                'The requested disposition record was not found.',
+                404
+            );
+        }
+
+        $asset = $this->lockAssetByRowId((int) $reference['asset_id']);
+        $statement = $this->pdo->prepare(
+            "SELECT id, disposition_id, asset_id, requested_by,
+                    requested_at, reason, proposed_method, request_remarks,
+                    asset_age_months_snapshot, useful_life_months_snapshot,
+                    lifecycle_snapshot, latest_audit_id_snapshot,
+                    latest_audit_result_snapshot, latest_audit_date_snapshot,
+                    status, institutional_approval_reference,
+                    institutional_approver_name,
+                    institutional_approver_position,
+                    institutional_approval_date, approval_remarks,
+                    approval_recorded_by, approval_recorded_at,
+                    completed_by, completed_at, completion_reference,
+                    completion_remarks, status_note, status_changed_by,
+                    status_changed_at, created_at, updated_at
+             FROM asset_dispositions WHERE id = :id FOR UPDATE"
+        );
+        $statement->execute(['id' => $reference['id']]);
+        $disposition = $statement->fetch();
+        if (!$disposition || (int) $disposition['asset_id'] !== (int) $asset['id']) {
+            throw new PropertyCoreDomainException(
+                'ASSET_STATE_CHANGED',
+                'The disposition relationship changed; refresh and retry.',
+                409
+            );
+        }
+        return [$asset, $disposition];
+    }
+
+    private function lockAssetByRowId(int $assetRowId): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT id, asset_id, inventory_id, asset_name, category,
+                    acquisition_date, status, custodian, employee_id,
+                    department, date_assigned
+             FROM assets WHERE id = :id FOR UPDATE"
+        );
+        $statement->execute(['id' => $assetRowId]);
+        $asset = $statement->fetch();
+        if (!$asset) {
+            throw new PropertyCoreDomainException(
+                'ASSET_NOT_FOUND',
+                'The disposition Asset record was not found.',
+                404
+            );
+        }
+        return $asset;
+    }
+
+    private function transitionDisposition(
+        string $dispositionId,
+        array $input,
+        string $actor,
+        string $targetStatus = 'Rejected',
+        string $action = 'reject',
+        string $eventType = 'Disposition Rejected'
+    ): array {
+        $this->assertWritesAllowed();
+        $record = AssetDispositionRules::decisionInput($input);
+
+        return $this->transaction(function () use (
+            $dispositionId,
+            $record,
+            $actor,
+            $targetStatus,
+            $action,
+            $eventType
+        ): array {
+            [$asset, $disposition] = $this->lockDispositionContext($dispositionId);
+            AssetDispositionRules::assertTransition($disposition['status'], $action);
+            $statement = $this->pdo->prepare(
+                "UPDATE asset_dispositions SET status = :status,
+                    status_note = :status_note,
+                    status_changed_by = :changed_by,
+                    status_changed_at = now(), updated_at = now()
+                 WHERE id = :id"
+            );
+            $statement->execute([
+                'status' => $targetStatus,
+                'status_note' => $record['status_note'],
+                'changed_by' => $actor,
+                'id' => $disposition['id'],
+            ]);
+            $this->recordDispositionEvent(
+                $asset,
+                $dispositionId,
+                $eventType,
+                $disposition['status'],
+                $targetStatus,
+                $disposition['proposed_method'],
+                $actor,
+                $record['status_note']
+            );
+            return $this->findDisposition($dispositionId);
+        });
+    }
+
+    private function normalizeDisposition(array $record): array
+    {
+        foreach (['id', 'asset_id', 'asset_age_months_snapshot', 'useful_life_months_snapshot'] as $field) {
+            if (array_key_exists($field, $record)) {
+                $record[$field] = $record[$field] === null
+                    ? null
+                    : (int) $record[$field];
+            }
+        }
+        return $record;
+    }
+
+    private function recordDispositionEvent(
+        array $asset,
+        string $dispositionId,
+        string $eventType,
+        ?string $fromStatus,
+        string $toStatus,
+        string $method,
+        string $actor,
+        ?string $description
+    ): void {
+        $this->recordEvent([
+            'module' => 'Asset Registry',
+            'event_type' => $eventType,
+            'business_id' => $asset['asset_id'],
+            'related_business_id' => $dispositionId,
+            'record_name_snap' => $asset['asset_name'],
+            'category_snap' => $asset['category'],
+            'event_date' => $this->today(),
+            'from_status' => $fromStatus,
+            'to_status' => $toStatus,
+            'outcome' => $method,
+            'performed_by' => $actor,
+            'description' => $description,
+        ]);
     }
 
     private function recordLifecycleConfigEvent(array $event): void
@@ -1518,7 +2225,8 @@ final class PropertyCoreRepository implements PropertyCoreStore
     {
         $statement = $this->pdo->prepare(
             "SELECT id, asset_id, inventory_id, asset_name, category,
-                    status, custodian, employee_id, department, date_assigned
+                    acquisition_date, status, custodian, employee_id,
+                    department, date_assigned
              FROM assets
              WHERE asset_id = :asset_id
              FOR UPDATE"
@@ -1553,7 +2261,11 @@ final class PropertyCoreRepository implements PropertyCoreStore
     {
         if (!in_array(
             $sequence,
-            ['inventory_id_seq', 'asset_id_seq'],
+            [
+                'inventory_id_seq',
+                'asset_id_seq',
+                'asset_disposition_business_id_seq',
+            ],
             true
         )) {
             throw new LogicException('Unsupported business-ID sequence.');

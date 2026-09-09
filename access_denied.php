@@ -19,11 +19,19 @@ include __DIR__ . '/includes/header.php';
         <i class="fas fa-shield-halved"></i>
     </span>
     <p class="section-heading">Access Restricted</p>
-    <h1>Administrator access is required</h1>
-    <p>
-        Your account can use the Property Custodian modules, but only a
-        System Administrator can manage user accounts and access.
-    </p>
+    <h1><?= htmlspecialchars(
+        (string) ($accessDeniedTitle ?? 'Additional access is required'),
+        ENT_QUOTES,
+        'UTF-8'
+    ) ?></h1>
+    <p><?= htmlspecialchars(
+        (string) (
+            $accessDeniedMessage ??
+            'Your account is not authorized to perform this action.'
+        ),
+        ENT_QUOTES,
+        'UTF-8'
+    ) ?></p>
     <a class="btn btn-primary" href="<?= BASE_URL ?>dashboard.php">
         Return to Dashboard
     </a>

@@ -287,7 +287,7 @@
             filterTimer = window.setTimeout(submitFilters, 400);
         });
     }
-    ['categoryFilter', 'statusFilter', 'locationFilter', 'lifecycleFilter'].forEach(function (id) {
+    ['categoryFilter', 'statusFilter', 'locationFilter', 'lifecycleFilter', 'sortFilter'].forEach(function (id) {
         var field = document.getElementById(id);
         if (field) field.addEventListener('change', submitFilters);
     });

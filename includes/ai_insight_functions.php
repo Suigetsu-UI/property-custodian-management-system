@@ -680,6 +680,7 @@ function loadAiInsightEvidence(
             custodian,
             status
          FROM assets
+         WHERE status <> 'Sold'
          ORDER BY asset_id"
     );
     $assets = $assetStatement->fetchAll();

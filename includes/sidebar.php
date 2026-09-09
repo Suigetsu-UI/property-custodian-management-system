@@ -11,6 +11,7 @@ $userInitial = strtoupper(substr($userRole ?: $userName, 0, 1));
 $navItems = [
     ['label' => 'Dashboard', 'href' => BASE_URL . 'dashboard.php', 'icon' => 'fa-table-cells-large', 'match' => 'dashboard.php'],
     ['label' => 'Asset Registry', 'href' => BASE_URL . 'modules/asset_registry/index.php', 'icon' => 'fa-boxes-stacked', 'match' => '/asset_registry/'],
+    ['label' => 'Disposition Reviews', 'href' => BASE_URL . 'modules/dispositions/index.php', 'icon' => 'fa-scale-balanced', 'match' => '/dispositions/'],
     ['label' => 'Inventory', 'href' => BASE_URL . 'modules/inventory/index.php', 'icon' => 'fa-warehouse', 'match' => '/inventory/'],
     ['label' => 'Maintenance', 'href' => BASE_URL . 'modules/maintenance/index.php', 'icon' => 'fa-wrench', 'match' => '/maintenance/'],
     ['label' => 'Procurement', 'href' => BASE_URL . 'modules/procurement/index.php', 'icon' => 'fa-cart-shopping', 'match' => '/procurement/'],
