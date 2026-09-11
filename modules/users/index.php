@@ -84,7 +84,8 @@ include "../../includes/header.php";
     <span id="userResultCount" aria-live="polite">Showing <?= count($users) ?> <?= count($users) === 1 ? 'User' : 'Users' ?></span>
 </div>
 
-<table class="asset-table" id="userTable">
+<div class="pcms-table-scroll pcms-card-table-shell" role="region" aria-label="User accounts" tabindex="0">
+<table class="asset-table pcms-mobile-card-table" id="userTable">
 
 <thead>
 <tr>
@@ -181,6 +182,7 @@ $status = isUserAccountActive($user['is_active']) ? 'Active' : 'Inactive';
 </tbody>
 
 </table>
+</div>
 
 <?php include __DIR__ . '/user_modals.php'; ?>
 

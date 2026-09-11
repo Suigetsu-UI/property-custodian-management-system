@@ -31,7 +31,8 @@ $pageUrl = static function (int $page) use ($procurementFilters): string {
     Showing <?= $firstRecord ?>–<?= $lastRecord ?> of <?= $totalRecords ?> Procurement records
 </div>
 
-<table class="asset-table" id="procurementTable">
+<div class="pcms-table-scroll pcms-card-table-shell" role="region" aria-label="Procurement records" tabindex="0">
+<table class="asset-table pcms-mobile-card-table" id="procurementTable">
 <thead>
 <tr>
     <th>Procurement ID</th>
@@ -88,6 +89,7 @@ $procurementPayload = htmlspecialchars(
 
 </tbody>
 </table>
+</div>
 
 <?php if ($totalPages > 1): ?>
 <nav class="pcms-pagination" aria-label="Procurement pagination">

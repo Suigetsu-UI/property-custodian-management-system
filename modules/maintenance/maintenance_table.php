@@ -75,8 +75,9 @@ $maintenanceRows =
 
 ?>
 
+<div class="pcms-table-scroll pcms-card-table-shell" role="region" aria-label="Maintenance records" tabindex="0">
 <table
-    class="asset-table"
+    class="asset-table pcms-mobile-card-table"
     id="maintenanceTable"
 >
 
@@ -177,3 +178,4 @@ No maintenance records found.
 </tbody>
 
 </table>
+</div>

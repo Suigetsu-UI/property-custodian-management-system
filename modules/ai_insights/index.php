@@ -131,8 +131,8 @@ $summaryCards = [
     <button type="button" class="btn btn-primary" id="compareAiAssets" disabled>Compare Selected</button>
 </div>
 
-<div class="pcms-table-scroll">
-<table class="asset-table ai-insight-table" id="aiInsightTable">
+<div class="pcms-table-scroll pcms-card-table-shell" role="region" aria-label="AI Asset attention records" tabindex="0">
+<table class="asset-table ai-insight-table pcms-mobile-card-table" id="aiInsightTable">
 <thead><tr>
     <th><span class="sr-only">Compare</span></th><th>Asset</th><th>Status</th>
     <th>Score</th><th>Level</th><th>Main Reason</th>

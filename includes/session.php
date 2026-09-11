@@ -51,6 +51,31 @@ function destroyPcmsSession(): void
     }
 }
 
+/**
+ * Load the current account for session verification without confusing a
+ * temporary database outage with an invalid authenticated session.
+ *
+ * The caller must fail closed when `available` is false, but must not destroy
+ * the browser session. A successful lookup that returns no user remains an
+ * invalid-session result and is handled by the normal revocation checks.
+ */
+function resolvePcmsSessionUser(callable $loader): array
+{
+    try {
+        $user = $loader();
+
+        return [
+            'available' => true,
+            'user' => is_array($user) ? $user : null,
+        ];
+    } catch (Throwable $error) {
+        return [
+            'available' => false,
+            'user' => null,
+        ];
+    }
+}
+
 function startPcmsSession(): bool
 {
     sendPcmsSecurityHeaders();

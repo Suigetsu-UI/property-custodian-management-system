@@ -7,7 +7,7 @@
     var closeButton = document.getElementById('sidebarClose');
     var dateEl = document.getElementById('headerDate');
     var mobileQuery = window.matchMedia('(max-width: 900px)');
-    var storageKey = 'pcmsSidebarCollapsed';
+    var storageKey = 'pcmsSidebarCollapsedV2';
 
     if (dateEl) {
         dateEl.textContent = new Date().toLocaleDateString('en-US', {
@@ -19,9 +19,10 @@
 
     function savedDesktopState() {
         try {
-            return window.localStorage.getItem(storageKey) === 'true';
+            var savedState = window.localStorage.getItem(storageKey);
+            return savedState === null ? true : savedState === 'true';
         } catch (error) {
-            return false;
+            return true;
         }
     }
 

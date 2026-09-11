@@ -16,7 +16,7 @@ require_once __DIR__ . '/access_control.php';
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/style.css">
-    <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/theme.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/theme.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/theme.css') ?>">
     <?php foreach (($pageStyles ?? []) as $pageStyle): ?>
     <link rel="stylesheet" href="<?= htmlspecialchars($pageStyle, ENT_QUOTES, 'UTF-8') ?>">
     <?php endforeach; ?>

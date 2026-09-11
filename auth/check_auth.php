@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../config/config.php';
 
 $pcmsSessionValid = startPcmsSession();
 
@@ -13,7 +14,7 @@ $pcmsSessionValid = startPcmsSession();
 if (!$pcmsSessionValid || !isset($_SESSION['user'])) {
 
     header(
-        "Location: /property-custodian-management-system/auth/login.php?error=" .
+        'Location: ' . BASE_URL . 'auth/login.php?error=' .
         ($pcmsSessionValid ? 'session' : 'expired')
     );
     exit();
@@ -29,10 +30,12 @@ $sessionEmployeeID = trim((string) (
 $sessionVersion = (int) (
     $_SESSION['user']['session_version'] ?? 0
 );
-$verifiedUser = null;
+$verification = resolvePcmsSessionUser(
+    static function () use ($sessionEmployeeID): ?array {
+        if ($sessionEmployeeID === '') {
+            return null;
+        }
 
-if ($sessionEmployeeID !== '') {
-    try {
         $pdo = getDbConnection();
         $stmt = $pdo->prepare(
             "SELECT id, employee_id, full_name, role, is_active,
@@ -43,11 +46,23 @@ if ($sessionEmployeeID !== '') {
         $stmt->execute([
             'employee_id' => $sessionEmployeeID,
         ]);
-        $verifiedUser = $stmt->fetch();
-    } catch (Throwable $error) {
-        $verifiedUser = null;
+
+        $user = $stmt->fetch();
+        return is_array($user) ? $user : null;
     }
+);
+
+if (!$verification['available']) {
+    http_response_code(503);
+    header('Cache-Control: no-store');
+    header('Retry-After: 5');
+    exit(
+        'PCMS is temporarily unable to verify your session. ' .
+        'Your account remains signed in. Please retry in a moment.'
+    );
 }
+
+$verifiedUser = $verification['user'];
 
 if (
     !$verifiedUser ||
@@ -61,7 +76,7 @@ if (
     destroyPcmsSession();
 
     header(
-        "Location: /property-custodian-management-system/auth/login.php?error=" .
+        'Location: ' . BASE_URL . 'auth/login.php?error=' .
         (
             $verifiedUser &&
             !isUserAccountActive($verifiedUser['is_active'])

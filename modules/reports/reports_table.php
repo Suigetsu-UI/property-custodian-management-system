@@ -66,8 +66,9 @@ foreach (getAllowedReportTypes() as $reportType) {
 
 ?>
 
+<div class="pcms-table-scroll pcms-card-table-shell" role="region" aria-label="Available reports" tabindex="0">
 <table
-    class="asset-table"
+    class="asset-table pcms-mobile-card-table"
     id="reportTable"
 >
 
@@ -151,3 +152,4 @@ No reports found.
 </tbody>
 
 </table>
+</div>

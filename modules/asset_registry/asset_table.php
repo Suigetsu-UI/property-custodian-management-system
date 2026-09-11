@@ -33,8 +33,8 @@ $pageUrl = static function (int $page) use ($assetFilters): string {
     Showing <?= $firstRecord ?>–<?= $lastRecord ?> of <?= $totalRecords ?> Assets
 </div>
 
-<div class="pcms-table-scroll" role="region" aria-label="Asset Registry records" tabindex="0">
-<table class="asset-table" id="assetTable">
+<div class="pcms-table-scroll pcms-card-table-shell" role="region" aria-label="Asset Registry records" tabindex="0">
+<table class="asset-table pcms-mobile-card-table" id="assetTable">
 <thead>
 <tr>
     <th>Asset ID</th>

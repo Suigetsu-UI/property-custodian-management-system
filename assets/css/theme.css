@@ -55,14 +55,14 @@ body {
 
 /* Asset disposition review */
 .disposition-page {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    display: grid;
+    align-content: start;
+    gap: 24px;
 }
 
 .disposition-heading {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 24px;
 }
@@ -74,50 +74,89 @@ body {
 .disposition-heading p:last-child {
     margin: 0;
     max-width: 760px;
+    color: var(--muted);
+    line-height: 1.6;
 }
 
 .disposition-summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
 }
 
 .disposition-summary-grid article {
-    padding: 18px;
-    border: 1px solid var(--border-color, #e3d9df);
-    border-radius: 16px;
-    background: var(--surface-color, #fff);
+    min-width: 0;
+    padding: 18px 20px;
+    border: 1px solid var(--borders-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-sm);
 }
 
 .disposition-summary-grid span {
     display: block;
     margin-bottom: 7px;
-    color: var(--text-muted, #655b61);
+    color: var(--muted);
     font-size: .82rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .04em;
 }
 
+.disposition-summary-grid strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: 1rem;
+    line-height: 1.45;
+}
+
+.disposition-page .lifecycle-settings-card > .pcms-form-grid,
+.disposition-page .lifecycle-settings-card > .disposition-details {
+    padding: 24px;
+}
+
+.disposition-page .lifecycle-settings-card > .success-message,
+.disposition-page .lifecycle-settings-card > .pcms-form-notice {
+    margin: 24px;
+}
+
+.disposition-page .pcms-form-grid textarea {
+    min-height: 104px;
+    resize: vertical;
+}
+
 .disposition-details {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     margin: 0;
 }
 
 .disposition-details div {
-    padding: 14px;
-    border-radius: 12px;
-    background: rgba(99, 22, 64, .04);
+    min-width: 0;
+    padding: 13px 15px;
+    border: 1px solid var(--borders-soft);
+    border-radius: var(--radius-sm);
+    background: #fcfbfa;
 }
 
 .disposition-details dt {
-    margin-bottom: 6px;
+    margin: 0 0 5px;
+    color: var(--muted);
+    font-size: 11px;
     font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
 }
 
 .disposition-details dd {
     margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
 }
 
 .disposition-decision-grid {
@@ -126,14 +165,69 @@ body {
     gap: 18px;
 }
 
-.disposition-decision-grid form {
+.disposition-decision-body {
     display: grid;
     gap: 12px;
+    padding: 24px;
+}
+
+.disposition-decision-body .form-row {
+    margin: 0;
+}
+
+.disposition-decision-body textarea {
+    width: 100%;
+    min-height: 104px;
+    padding: 11px 14px;
+    resize: vertical;
+    border: 1px solid var(--borders);
+    border-radius: var(--radius-md);
+    background: #fff;
+    font: inherit;
+}
+
+.disposition-decision-body textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(124, 45, 145, .12);
+}
+
+.disposition-decision-body .btn {
+    justify-self: start;
+}
+
+.pcms-status-badge[data-status="sold"] {
+    background: #f3e8ff;
+    color: #6b21a8;
+}
+
+.pcms-status-badge[data-status="cancelled"] {
+    background: #f3f4f6;
+    color: #4b5563;
 }
 
 @media (max-width: 720px) {
     .disposition-heading {
+        align-items: stretch;
         flex-direction: column;
+    }
+
+    .disposition-heading .btn {
+        align-self: flex-start;
+    }
+
+    .disposition-summary-grid,
+    .disposition-details,
+    .disposition-decision-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .disposition-page .lifecycle-settings-card > .pcms-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .disposition-page .lifecycle-settings-card > .pcms-form-grid .pcms-form-span-2 {
+        grid-column: auto;
     }
 }
 
@@ -1004,6 +1098,23 @@ body.sidebar-collapsed .main-content {
     font-weight: 600;
 }
 
+.search-toolbar > input,
+.search-toolbar > select {
+    width: auto;
+    min-width: 180px;
+    flex: 1 1 190px;
+}
+
+.search-toolbar > input[type="search"],
+.search-toolbar > input[type="text"] {
+    flex: 2 1 320px;
+}
+
+.search-toolbar > .btn,
+.search-toolbar > button {
+    flex: 0 0 auto;
+}
+
 .pcms-inline-action {
     display: inline;
 }
@@ -1145,6 +1256,7 @@ body.pcms-modal-open {
     width: min(100%, 920px);
     max-width: none;
     max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -1165,8 +1277,9 @@ body.pcms-modal-open {
 
 .pcms-modal-form {
     display: flex;
-    flex: 1;
+    flex: 0 1 auto;
     flex-direction: column;
+    max-height: inherit;
     min-height: 0;
     margin: 0;
 }
@@ -1699,6 +1812,15 @@ body.pcms-modal-open {
         right: 0;
         width: auto !important;
         padding: 0 16px;
+        gap: 12px;
+    }
+
+    .top-header-left {
+        gap: 10px;
+    }
+
+    .top-header-right {
+        gap: 10px;
     }
 
     .menu-toggle {
@@ -1734,13 +1856,32 @@ body.pcms-modal-open {
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
+    .top-header {
+        padding: 0 12px;
+    }
+
+    .top-header .system-title {
+        font-size: 15px;
+    }
+
     .top-header .user-info {
         display: none;
     }
 
-    .dashboard-cards {
-        grid-template-columns: 1fr;
+    .header-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 13px;
+    }
+
+    .search-toolbar > input,
+    .search-toolbar > select,
+    .search-toolbar > .btn,
+    .search-toolbar > button {
+        flex: 1 1 100%;
+        min-width: 0;
+        width: 100%;
     }
 
     .search-toolbar button {
@@ -1748,14 +1889,47 @@ body.pcms-modal-open {
         width: 100%;
     }
 
+    .search-toolbar > a.btn {
+        margin-right: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .pcms-table-scroll::before {
+        content: "Swipe horizontally to view all columns";
+        position: sticky;
+        left: 0;
+        display: block;
+        width: max-content;
+        max-width: calc(100vw - 56px);
+        margin: 0 0 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #f5edf8;
+        color: var(--accent-primary);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1px;
+    }
+
+    .pcms-card-table-shell::before {
+        display: none;
+        content: none;
+    }
+
     .modal.pcms-modal {
-        align-items: stretch;
+        align-items: center;
         padding: 10px;
     }
 
     .pcms-modal .pcms-modal-dialog {
         width: 100%;
         max-height: calc(100vh - 20px);
+        max-height: calc(100dvh - 20px);
         border-radius: var(--radius-md) !important;
     }
 
@@ -1772,6 +1946,8 @@ body.pcms-modal-open {
     }
 
     .pcms-modal-footer {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         padding: 13px 18px;
     }
 
@@ -1786,7 +1962,183 @@ body.pcms-modal-open {
     }
 
     .pcms-modal-footer .btn {
-        flex: 1;
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        white-space: normal;
+    }
+
+    .pcms-modal-footer .btn:first-child:nth-last-child(3) {
+        grid-column: 1 / -1;
+    }
+
+    .pcms-mobile-card-table,
+    .pcms-table-scroll .pcms-mobile-card-table {
+        display: block;
+        min-width: 0;
+        background: transparent;
+    }
+
+    .pcms-mobile-card-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .pcms-mobile-card-table tbody {
+        display: grid;
+        gap: 12px;
+    }
+
+    .pcms-mobile-card-table tbody > tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: hidden;
+        border: 1px solid var(--borders-soft);
+        border-radius: var(--radius-md);
+        background: #fff !important;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .pcms-mobile-card-table tbody > tr[hidden] {
+        display: none;
+    }
+
+    .pcms-mobile-card-table tbody > tr:hover {
+        background: #fff !important;
+    }
+
+    .pcms-mobile-card-table td {
+        display: block;
+        min-width: 0;
+        padding: 11px 12px;
+        border: 0;
+        border-bottom: 1px solid var(--borders-soft);
+        overflow-wrap: anywhere;
+    }
+
+    .pcms-mobile-card-table td::before {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .pcms-mobile-card-table td:last-child,
+    .pcms-mobile-card-table td[colspan] {
+        grid-column: 1 / -1;
+        border-bottom: 0;
+    }
+
+    .pcms-mobile-card-table td[colspan]::before {
+        display: none;
+    }
+
+    .pcms-mobile-card-table td:last-child .btn,
+    .pcms-mobile-card-table td:last-child button {
+        margin: 4px 4px 4px 0;
+    }
+
+    #assetTable td:nth-child(1)::before { content: "Asset ID"; }
+    #assetTable td:nth-child(2)::before { content: "Asset Name"; }
+    #assetTable td:nth-child(3)::before { content: "Category"; }
+    #assetTable td:nth-child(4)::before { content: "Age"; }
+    #assetTable td:nth-child(5)::before { content: "Lifecycle"; }
+    #assetTable td:nth-child(6)::before { content: "Custodian"; }
+    #assetTable td:nth-child(7)::before { content: "Status"; }
+    #assetTable td:nth-child(8)::before { content: "Actions"; }
+
+    #procurementTable td:nth-child(1)::before { content: "Procurement ID"; }
+    #procurementTable td:nth-child(2)::before { content: "Item Name"; }
+    #procurementTable td:nth-child(3)::before { content: "Category"; }
+    #procurementTable td:nth-child(4)::before { content: "Quantity"; }
+    #procurementTable td:nth-child(5)::before { content: "Supplier"; }
+    #procurementTable td:nth-child(6)::before { content: "Status"; }
+    #procurementTable td:nth-child(7)::before { content: "Actions"; }
+
+    #maintenanceTable td:nth-child(1)::before { content: "Maintenance ID"; }
+    #maintenanceTable td:nth-child(2)::before { content: "Asset Name"; }
+    #maintenanceTable td:nth-child(3)::before { content: "Maintenance Type"; }
+    #maintenanceTable td:nth-child(4)::before { content: "Scheduled Date"; }
+    #maintenanceTable td:nth-child(5)::before { content: "Status"; }
+    #maintenanceTable td:nth-child(6)::before { content: "Actions"; }
+
+    #auditTable td:nth-child(1)::before { content: "Audit ID"; }
+    #auditTable td:nth-child(2)::before { content: "Asset"; }
+    #auditTable td:nth-child(3)::before { content: "Auditor"; }
+    #auditTable td:nth-child(4)::before { content: "Date"; }
+    #auditTable td:nth-child(5)::before { content: "Status"; }
+    #auditTable td:nth-child(6)::before { content: "Result"; }
+    #auditTable td:nth-child(7)::before { content: "Actions"; }
+
+    #reportTable td:nth-child(1)::before { content: "Report Type"; }
+    #reportTable td:nth-child(2)::before { content: "Description"; }
+    #reportTable td:nth-child(3)::before { content: "Actions"; }
+
+    #userTable td:nth-child(1)::before { content: "Employee ID"; }
+    #userTable td:nth-child(2)::before { content: "Full Name"; }
+    #userTable td:nth-child(3)::before { content: "Role"; }
+    #userTable td:nth-child(4)::before { content: "Status"; }
+    #userTable td:nth-child(5)::before { content: "MFA Status"; }
+    #userTable td:nth-child(6)::before { content: "Created"; }
+    #userTable td:nth-child(7)::before { content: "Actions"; }
+
+    #aiInsightTable td:nth-child(1)::before { content: "Compare"; }
+    #aiInsightTable td:nth-child(2)::before { content: "Asset"; }
+    #aiInsightTable td:nth-child(3)::before { content: "Status"; }
+    #aiInsightTable td:nth-child(4)::before { content: "Score"; }
+    #aiInsightTable td:nth-child(5)::before { content: "Level"; }
+    #aiInsightTable td:nth-child(6)::before { content: "Main Reason"; }
+    #aiInsightTable td:nth-child(7)::before { content: "Available History"; }
+    #aiInsightTable td:nth-child(8)::before { content: "Maintenance History"; }
+    #aiInsightTable td:nth-child(9)::before { content: "Action"; }
+
+    #dispositionTable td:nth-child(1)::before { content: "Disposition"; }
+    #dispositionTable td:nth-child(2)::before { content: "Asset"; }
+    #dispositionTable td:nth-child(3)::before { content: "Method"; }
+    #dispositionTable td:nth-child(4)::before { content: "Status"; }
+    #dispositionTable td:nth-child(5)::before { content: "Requested"; }
+    #dispositionTable td:nth-child(6)::before { content: "Approval Reference"; }
+    #dispositionTable td:nth-child(7)::before { content: "Action"; }
+
+    #lifecycleTable td:nth-child(1)::before { content: "Category"; }
+    #lifecycleTable td:nth-child(2)::before { content: "Expected Lifespan"; }
+    #lifecycleTable td:nth-child(3)::before { content: "Policy / Notes"; }
+    #lifecycleTable td:nth-child(4)::before { content: "Updated By"; }
+    #lifecycleTable td:nth-child(5)::before { content: "Last Updated"; }
+}
+
+@media (max-width: 420px) {
+    .top-header .system-title {
+        font-size: 0;
+    }
+
+    .top-header .system-title::after {
+        content: "Smart AssetTrack";
+        font-size: 15px;
+    }
+
+    .menu-toggle {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+    }
+
+    .main-content {
+        padding: 18px 12px 28px !important;
+    }
+
+    .main-content h1 {
+        font-size: 24px;
     }
 }
 
@@ -1798,6 +2150,9 @@ body.pcms-modal-open {
     display: grid;
     align-content: start;
     gap: 24px;
+    width: 100%;
+    max-width: 1100px;
+    margin-inline: auto;
 }
 
 .account-security-heading {
@@ -1834,7 +2189,7 @@ body.pcms-modal-open {
 }
 
 .account-security-card {
-    width: min(780px, 100%);
+    width: min(980px, 100%);
     overflow: hidden;
     border: 1px solid #eadde8;
     border-radius: 20px;
@@ -1953,6 +2308,16 @@ body.pcms-modal-open {
     .account-security-action {
         flex-direction: column;
     }
+
+    .account-security-card-header,
+    .account-security-action,
+    .account-security-disable {
+        padding: 18px;
+    }
+
+    .account-security-notice {
+        margin: 18px;
+    }
 }
 
 /* ── Access control ── */
@@ -2023,6 +2388,9 @@ body.pcms-modal-open {
     display: grid;
     align-content: start;
     gap: 24px;
+    width: 100%;
+    max-width: 1180px;
+    margin-inline: auto;
 }
 
 .lifecycle-settings-heading {
@@ -2080,14 +2448,14 @@ body.pcms-modal-open {
 }
 
 .lifecycle-settings-form {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(260px, 460px) auto;
     align-items: end;
     gap: 18px;
 }
 
 .lifecycle-settings-form .form-row {
-    flex: 1;
-    max-width: 460px;
+    max-width: none;
 }
 
 .lifecycle-percent-field {
@@ -2107,6 +2475,63 @@ body.pcms-modal-open {
 
 .lifecycle-settings-card > .pcms-form-notice {
     margin: 24px 24px 0;
+}
+
+.lifecycle-threshold-guide {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0 24px 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--borders-soft);
+}
+
+.lifecycle-threshold-guide > div {
+    min-width: 0;
+    padding: 14px 16px;
+    border: 1px solid var(--borders-soft);
+    border-radius: var(--radius-md);
+    background: #fcfbfa;
+}
+
+.lifecycle-threshold-guide span,
+.lifecycle-threshold-guide strong,
+.lifecycle-threshold-guide small {
+    display: block;
+}
+
+.lifecycle-threshold-guide span {
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.lifecycle-threshold-guide strong {
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.lifecycle-threshold-guide small {
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.lifecycle-threshold-guide [data-stage="active"] strong { color: #166534; }
+.lifecycle-threshold-guide [data-stage="aging"] strong { color: #92400e; }
+.lifecycle-threshold-guide [data-stage="review"] strong { color: #991b1b; }
+
+.lifecycle-category-form {
+    grid-template-columns: minmax(240px, 2fr) minmax(130px, .7fr) minmax(150px, .8fr);
+}
+
+.lifecycle-category-form .form-row small {
+    display: block;
+    margin-top: 7px;
+    color: var(--muted);
+    line-height: 1.45;
 }
 
 .lifecycle-settings-card .pcms-table-scroll {
@@ -2148,14 +2573,62 @@ body.pcms-modal-open {
 
 .lifecycle-history-list article {
     display: grid;
-    grid-template-columns: minmax(180px, 0.6fr) minmax(180px, 0.6fr) 1fr;
+    grid-template-columns: minmax(220px, 1.2fr) minmax(260px, 1fr) minmax(210px, .8fr);
+    align-items: center;
     gap: 16px;
-    padding: 16px 24px;
+    padding: 18px 24px;
     border-bottom: 1px solid var(--borders-soft);
 }
 
 .lifecycle-history-list article:last-child {
     border-bottom: 0;
+}
+
+.lifecycle-history-title strong,
+.lifecycle-history-title span,
+.lifecycle-history-meta span,
+.lifecycle-history-meta time {
+    display: block;
+}
+
+.lifecycle-history-title strong {
+    color: var(--text);
+    font-size: 14px;
+}
+
+.lifecycle-history-title span {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.lifecycle-history-change {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: #f8f7f4;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.lifecycle-history-change i {
+    color: var(--accent-primary);
+}
+
+.lifecycle-history-change strong {
+    color: var(--text);
+}
+
+.lifecycle-history-meta {
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.lifecycle-history-meta time {
+    color: var(--muted);
 }
 
 .lifecycle-history-list article p,
@@ -2178,7 +2651,18 @@ body.pcms-modal-open {
     .lifecycle-settings-heading,
     .lifecycle-settings-form {
         align-items: stretch;
+    }
+
+    .lifecycle-settings-form {
+        grid-template-columns: 1fr;
+    }
+
+    .lifecycle-settings-heading {
         flex-direction: column;
+    }
+
+    .lifecycle-settings-form .btn {
+        width: 100%;
     }
 
     .lifecycle-settings-icon {
@@ -2187,6 +2671,27 @@ body.pcms-modal-open {
 
     .lifecycle-history-list article {
         grid-template-columns: 1fr;
+    }
+
+    .lifecycle-category-form,
+    .lifecycle-threshold-guide {
+        grid-template-columns: 1fr;
+    }
+
+    .lifecycle-settings-card-header,
+    .lifecycle-settings-form,
+    .lifecycle-category-form {
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    .lifecycle-settings-card > .pcms-form-notice {
+        margin: 18px 18px 0;
+    }
+
+    .lifecycle-threshold-guide {
+        margin-right: 18px;
+        margin-left: 18px;
     }
 }
 
@@ -3042,8 +3547,26 @@ body.pcms-modal-open {
     }
 
     .ai-summary-grid,
+    .ai-summary-grid--portfolio {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .ai-summary-card {
+        gap: 10px;
+        padding: 13px 11px;
+    }
+
+    .ai-summary-icon {
+        width: 34px;
+        height: 34px;
+    }
+
+    .ai-summary-card strong {
+        font-size: 20px;
+    }
+
     .ai-score-overview,
-    .ai-summary-grid--portfolio,
     .ai-portfolio-context,
     .ai-interpretation-grid,
     .ai-coverage-signals,

@@ -1,7 +1,5 @@
 <?php
 
-define('BASE_URL', '/property-custodian-management-system/');
-
 /*
 |--------------------------------------------------------------------------
 | Minimal .env Loader
@@ -43,6 +41,35 @@ function loadEnv(string $path): void
 }
 
 loadEnv(__DIR__ . '/../.env');
+
+/*
+|--------------------------------------------------------------------------
+| Public Application Path
+|--------------------------------------------------------------------------
+| Local XAMPP uses /property-custodian-management-system/. A hosted domain
+| can set PCMS_BASE_URL=/ without changing application links or redirects.
+*/
+
+function normalizePcmsBaseUrl(mixed $value): string
+{
+    $baseUrl = trim((string) $value);
+
+    if ($baseUrl === '') {
+        return '/property-custodian-management-system/';
+    }
+
+    $path = parse_url($baseUrl, PHP_URL_PATH);
+
+    if (!is_string($path) || $path === '') {
+        throw new RuntimeException('PCMS_BASE_URL must be a valid URL path.');
+    }
+
+    return '/' . trim($path, '/') . (
+        trim($path, '/') === '' ? '' : '/'
+    );
+}
+
+define('BASE_URL', normalizePcmsBaseUrl(getenv('PCMS_BASE_URL') ?: ''));
 
 /*
 |--------------------------------------------------------------------------

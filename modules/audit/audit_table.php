@@ -93,8 +93,9 @@ $auditRows =
 
 ?>
 
+<div class="pcms-table-scroll pcms-card-table-shell" role="region" aria-label="Audit records" tabindex="0">
 <table
-    class="asset-table"
+    class="asset-table pcms-mobile-card-table"
     id="auditTable"
 >
 
@@ -200,3 +201,4 @@ No audit records found.
 </tbody>
 
 </table>
+</div>

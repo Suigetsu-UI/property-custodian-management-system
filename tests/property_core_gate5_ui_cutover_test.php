@@ -183,7 +183,7 @@ assertPropertyCoreGate5(
     'The internal service token must never reach browser code or table markup.'
 );
 assertPropertyCoreGate5(
-    preg_match('/^PROPERTY_CORE_ALLOW_WRITES=false$/m', $example) === 1,
+    preg_match('/^PROPERTY_CORE_ALLOW_WRITES=false\r?$/m', $example) === 1,
     'Property Core production write capability must remain fail-closed by default.'
 );
 
